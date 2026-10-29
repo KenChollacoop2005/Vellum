@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sheet 07 Linkage simulator | Vellum</title>
+<link rel="stylesheet" href="../../css/tokens.css">
+<link rel="stylesheet" href="../../css/base.css">
+<link rel="stylesheet" href="../../css/sheet.css">
+<script type="module" src="ui.js"></script>
+</head>
+<body>
+<main class="sheet tool">
+  <header class="sheet-head">
+    <span class="no">SHEET 07</span>
+    <h1>Linkage simulator</h1>
+    <p class="subtitle">Four bar linkages and the Strandbeest leg, with coupler curves.</p>
+    <a class="wordmark" href="../../index.html">VELLUM</a>
+  </header>
+
+  <section class="panel given" aria-labelledby="given-h">
+    <h2 id="given-h">Given</h2>
+    <h3>Presets</h3>
+    <div class="btn-row" id="presets"></div>
+    <div class="field wide"><label for="mode">Mode</label><select id="mode"><option value="fourBar">Four bar</option><option value="jansen">Jansen leg</option></select></div>
+
+    <div id="given-fb">
+      <h3>Links</h3>
+      <div class="field"><label for="ground">Ground O2 O4</label><input id="ground" type="number" step="0.5" min="0"><span class="unit">units</span></div>
+      <div class="field"><label for="crank">Crank O2 A</label><input id="crank" type="number" step="0.5" min="0"><span class="unit">units</span></div>
+      <div class="field"><label for="coupler">Coupler A B</label><input id="coupler" type="number" step="0.5" min="0"><span class="unit">units</span></div>
+      <div class="field"><label for="rocker">Rocker O4 B</label><input id="rocker" type="number" step="0.5" min="0"><span class="unit">units</span></div>
+      <h3>Coupler point P</h3>
+      <div class="field"><label for="pdist">Distance from A</label><input id="pdist" type="number" step="0.5"><span class="unit">units</span></div>
+      <div class="field"><label for="pangle">Angle from AB</label><input id="pangle" type="number" step="5"><span class="unit">deg</span></div>
+      <div class="field wide"><label for="branch">Assembly</label><select id="branch"><option value="open">Open</option><option value="crossed">Crossed</option></select></div>
+      <p class="soft">Drag A, B, O4 or P on the drawing to change lengths directly.</p>
+    </div>
+
+    <div id="given-jansen" hidden>
+      <h3>Holy numbers</h3>
+      <div id="jansen-fields"></div>
+      <label class="check"><input type="checkbox" id="pair">Second leg, 180° out of phase</label>
+      <label class="check"><input type="checkbox" id="mirror">Mirrored pair</label>
+    </div>
+    <p class="err" id="geo-err" role="alert"></p>
+
+    <h3>Drive</h3>
+    <div class="field"><label for="speed">Crank speed</label><input id="speed" type="number" step="0.5" min="0"><span class="unit">rad/s</span></div>
+    <div class="field"><label for="theta">Crank angle</label><input id="theta" type="number" step="1"><span class="unit">deg</span></div>
+    <div class="slider-wrap">
+      <input id="theta-range" type="range" min="0" max="360" step="0.25" aria-label="Crank angle in degrees">
+      <canvas id="dead" aria-hidden="true"></canvas>
+    </div>
+    <p class="soft" id="dead-note"></p>
+    <div class="btn-row"><button type="button" class="primary" id="play">Play</button><button type="button" id="copy-link">Copy link</button></div>
+  </section>
+
+  <section class="panel solution" aria-labelledby="solution-h">
+    <h2 id="solution-h">Solution</h2>
+    <div class="bar">
+      <label class="check"><input type="checkbox" id="trace" checked>Coupler curve</label>
+      <span class="spacer"></span>
+      <button type="button" id="fit">Fit</button>
+    </div>
+    <div class="stage"><canvas class="main" tabindex="0" aria-label="Linkage drawing. Drag joints to change lengths, drag empty space to pan, wheel to zoom."></canvas></div>
+    <p class="note" id="status-note"></p>
+  </section>
+
+  <section class="panel find" aria-labelledby="find-h">
+    <h2 id="find-h">Find</h2>
+    <div class="answers" id="answers"></div>
+    <div class="table-wrap"><table class="data" id="t-info"></table></div>
+    <div class="btn-row">
+      <button type="button" id="csv">Export CSV</button>
+      <button type="button" id="png">Export PNG</button>
+    </div>
+  </section>
+
+  <details class="method">
+    <summary>Method</summary>
+    <div class="notes">
+      <p>Every joint is found as the intersection of two circles. For the four bar, A sits on the crank circle around O2, and B is where a circle of radius "coupler" around A meets a circle of radius "rocker" around O4. There are two answers: the open and the crossed assembly. The sheet picks one side of the line from A to O4 and keeps it for the whole cycle, so it never jumps branches. If the two circles miss each other, that crank angle can't be assembled. Those dead zones are hatched under the angle slider, and the animation turns around at the limit instead of jumping.</p>
+      <div class="eq">d = |O4 − A|      a = (r1² − r2² + d²) / (2d)      h = √(r1² − a²)
+B = A + a (O4 − A)/d ± h · perpendicular
+Grashof:  s + l ≤ p + q   (shortest + longest vs the other two)</div>
+      <p>Grashof class: if s + l &lt; p + q, at least one link can turn all the way around, and which one is shortest decides the type (shortest is the ground: double crank; the crank: crank rocker; the coupler: double rocker; the rocker: rocker crank). If s + l = p + q it is a change point linkage, which can flip between branches at a singular position. Otherwise it is a non Grashof triple rocker. The transmission angle μ is the angle between coupler and rocker at B, folded into 0° to 90°; values far from 90° mean the linkage pushes badly.</p>
+      <p>Toggle positions: the sheet lists crank angles where crank and coupler line up (the rocker is at the end of its swing) and, for a crank that can't turn fully, where coupler and rocker line up (the crank stops). Coupler point velocity is a central finite difference of position with a 1e-6 rad step, times the crank speed.</p>
+      <p>Jansen leg: the crank center O is at (0, 0) and the frame pivot B is at (−a, −l). With crank tip A, the joints are found in order: C from (B, b) and (A, j); D from (B, c) and (A, k); E from (B, d) and (C, e); F from (D, g) and (E, f); the foot G from (D, i) and (F, h). Triangles BCE and DFG are rigid. Units are whatever the holy numbers are in (Jansen's drawings use cm). Ground contact is defined as the part of the foot path within 2 percent of the step height above its lowest point; stride is the horizontal length of that part.</p>
+      <p>Checks: loop closure (every bar length matches its input) is tested at every solved angle, and the Jansen joints at 0° are cross checked against a separate Newton solve of all ten bar equations.</p>
+      <p>References: Norton, <i>Design of Machinery</i>; Theo Jansen's holy numbers (strandbeest.com); the Jansen joint construction on Wikibooks. Full list in <a href="https://github.com/KenChollacoop2005/Vellum/blob/main/docs/references.md">docs/references.md</a>. Benchmark checks: <a href="../../verify.html#sheet-07">Verification sheet</a>.</p>
+    </div>
+  </details>
+  <aside class="title-block" aria-label="Title block"></aside>
+</main>
+</body>
+</html>

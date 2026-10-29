@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sheet 06 Vibrations you can hear | Vellum</title>
+<link rel="stylesheet" href="../../css/tokens.css">
+<link rel="stylesheet" href="../../css/base.css">
+<link rel="stylesheet" href="../../css/sheet.css">
+<script type="module" src="ui.js"></script>
+</head>
+<body>
+<main class="sheet tool">
+  <header class="sheet-head">
+    <span class="no">SHEET 06</span>
+    <h1>Vibrations you can hear</h1>
+    <p class="subtitle">Hear the natural frequencies of a spring and mass system.</p>
+    <a class="wordmark" href="../../index.html">VELLUM</a>
+  </header>
+
+  <section class="panel given" aria-labelledby="given-h">
+    <h2 id="given-h">Given</h2>
+    <h3>Presets</h3>
+    <div class="btn-row" id="presets"></div>
+    <h3>Chain</h3>
+    <div class="field"><label for="n">Masses</label><input id="n" type="number" min="1" max="8" step="1"><span class="unit"></span></div>
+    <div class="field wide"><label for="ends">Ends</label><select id="ends"></select></div>
+    <div class="table-wrap"><table class="data inputs" id="t-masses"></table></div>
+    <div class="table-wrap"><table class="data inputs" id="t-springs"></table></div>
+    <p class="err" id="chain-err" role="alert"></p>
+    <h3>Rayleigh damping</h3>
+    <label class="check"><input type="checkbox" id="rayleigh">Add&nbsp;<span class="sym">C = αM + βK</span></label>
+    <div class="field"><label for="alpha"><span class="sym">α</span></label><input id="alpha" type="number" step="0.05" min="0"><span class="unit">1/s</span></div>
+    <div class="field"><label for="beta"><span class="sym">β</span></label><input id="beta" type="number" step="0.0005" min="0"><span class="unit">s</span></div>
+    <h3>Forcing</h3>
+    <div class="field wide"><label for="force-at">Force at</label><select id="force-at"></select></div>
+    <div class="field wide"><label for="watch">Response of</label><select id="watch"></select></div>
+    <div class="field"><label for="w0">Sweep from</label><input id="w0" type="number" step="1" min="0.01"><span class="unit">rad/s</span></div>
+    <div class="field"><label for="w1">Sweep to</label><input id="w1" type="number" step="1" min="0.02"><span class="unit">rad/s</span></div>
+    <p class="err" id="force-err" role="alert"></p>
+    <h3>Free response</h3>
+    <div class="field wide"><label for="kick-at">Displace</label><select id="kick-at"></select></div>
+    <div class="btn-row"><button type="button" id="copy-link">Copy link</button></div>
+  </section>
+
+  <section class="panel solution" aria-labelledby="solution-h">
+    <h2 id="solution-h">Solution</h2>
+    <div class="bar">
+      <span class="btn-row" id="mode-buttons" role="group" aria-label="Animate"></span>
+      <button type="button" id="free">Free response</button>
+      <button type="button" class="primary" id="play">Play</button>
+    </div>
+    <div class="stage"><canvas class="main" aria-label="Mass, spring and damper schematic with animated mode shape"></canvas></div>
+    <div class="bar">
+      <button type="button" class="primary" id="tones">Play modes</button>
+      <label class="check" for="volume">Volume&nbsp;</label><input id="volume" type="range" min="0" max="1" step="0.01" style="max-width: 9rem" aria-label="Master volume">
+      <span class="soft" id="pitch-note"></span>
+    </div>
+    <p class="note" id="status-note"></p>
+  </section>
+
+  <section class="panel find" aria-labelledby="find-h">
+    <h2 id="find-h">Find</h2>
+    <div class="answers" id="freqs"></div>
+    <p class="soft" id="damp-note"></p>
+    <h3>Mode shapes, mass normalized</h3>
+    <div class="table-wrap"><table class="data" id="t-modes"></table></div>
+    <h3>Frequency response</h3>
+    <div class="frf"><canvas id="frf" aria-label="Frequency response plot, amplitude on a log scale"></canvas></div>
+    <div class="btn-row">
+      <button type="button" id="csv">Export CSV</button>
+      <button type="button" id="png">Export PNG</button>
+    </div>
+  </section>
+
+  <details class="method">
+    <summary>Method</summary>
+    <div class="notes">
+      <p>The masses sit in a line and move only sideways. Each spring and dashpot adds to the stiffness and damping matrices like a 1D truss element, so the equations of motion are</p>
+      <div class="eq">M ẍ + C ẋ + K x = F(t)
+free vibration:  K φ = ω² M φ        (generalized eigenproblem)</div>
+      <p>I solve the eigenproblem by Cholesky reduction (M = LLᵀ, then a symmetric problem for L⁻¹KL⁻ᵀ) and a cyclic Jacobi solver. The mode shapes come out mass normalized, φᵀMφ = 1. A free free chain has one mode at ω = 0, which is the whole chain sliding as a rigid body.</p>
+      <p>Damping: the dashpots and the optional Rayleigh term C = αM + βK build C. If ΦᵀCΦ is diagonal the damping is proportional and each mode gets ζ = (ΦᵀCΦ)ᵢᵢ / (2ωᵢ). If it is not diagonal the sheet says so, the ζ values shown are only the diagonal terms, and the frequency response is still exact because it solves the complex system directly:</p>
+      <div class="eq">(K − ω²M + iωC) X = F      amplitude = |X|</div>
+      <p>The free response animation integrates the full equations with the Newmark average acceleration method, so it works for any damping. The mode animations are exaggerated and slowed down so you can see them.</p>
+      <p>Sound: real structures often vibrate at a few Hz, which you can't hear. So every frequency is multiplied by one shared factor that puts the lowest mode at 220 Hz. The ratios between modes stay exact, so the chord you hear has the same intervals as the structure. If that would push the top mode above 4 kHz, the spread is compressed on a log scale and the sheet says the intervals are no longer exact. With damping on, each tone decays faster when its ζ is larger (time constant 0.06/ζ seconds, kept between 0.08 and 1.2 s); this is a choice for listening, not a physical time scale.</p>
+      <p>Limits: linear springs and dashpots, small motion, one direction only.</p>
+      <p>References: Rao, <i>Mechanical Vibrations</i>; Inman, <i>Engineering Vibration</i>. Full list in <a href="https://github.com/KenChollacoop2005/Vellum/blob/main/docs/references.md">docs/references.md</a>. Benchmark checks: <a href="../../verify.html#sheet-06">Verification sheet</a>.</p>
+    </div>
+  </details>
+  <aside class="title-block" aria-label="Title block"></aside>
+</main>
+</body>
+</html>

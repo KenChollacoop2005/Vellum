@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verification | Vellum</title>
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/sheet.css">
+<link rel="stylesheet" href="css/verify.css">
+<script type="module" src="verify/page.js"></script>
+</head>
+<body>
+<main class="sheet verify">
+  <header class="sheet-head">
+    <span class="no">SHEET V</span>
+    <h1>Verification</h1>
+    <p class="subtitle">Every benchmark check, run live in your browser.</p>
+    <a class="wordmark" href="index.html">VELLUM</a>
+  </header>
+  <section class="intro panel">
+    <p>Every tool on this site is checked against known answers: textbook results, hand calculations and published benchmarks. These checks run in your browser right now, using the same code the sheets use. Failing rows stay on the page.</p>
+    <p class="summary" id="summary" role="status">Running checks...</p>
+    <div class="btn-row">
+      <button type="button" class="primary" id="run-slow">Run all slow checks</button>
+      <button type="button" id="rerun">Run fast checks again</button>
+    </div>
+    <p class="soft">Slow checks (the full optimizer runs and the flow benchmarks) take from a few seconds to a few minutes and run only when you press Run. Results of slow checks are remembered in this browser.</p>
+  </section>
+  <div class="stamp" id="stamp" hidden aria-label="Checked stamp"></div>
+  <section class="panel results">
+    <div class="table-wrap">
+      <table class="data checks" id="checks">
+        <thead><tr><th>Case</th><th>Sheet</th><th>Description</th><th>Quantity</th><th>Expected</th><th>Computed</th><th>Error</th><th>Tol</th><th>Result</th><th>Source</th></tr></thead>
+      </table>
+    </div>
+  </section>
+  <aside class="title-block" aria-label="Title block"></aside>
+</main>
+</body>
+</html>

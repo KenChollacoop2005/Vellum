@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sheet 05 Laminate calculator | Vellum</title>
+<link rel="stylesheet" href="../../css/tokens.css">
+<link rel="stylesheet" href="../../css/base.css">
+<link rel="stylesheet" href="../../css/sheet.css">
+<script type="module" src="ui.js"></script>
+</head>
+<body>
+<main class="sheet tool">
+  <header class="sheet-head">
+    <span class="no">SHEET 05</span>
+    <h1>Laminate calculator</h1>
+    <p class="subtitle">Stiffness and first ply failure of a composite layup.</p>
+    <a class="wordmark" href="../../index.html">VELLUM</a>
+  </header>
+
+  <section class="panel given" aria-labelledby="given-h">
+    <h2 id="given-h">Given</h2>
+    <h3>Presets</h3>
+    <div class="btn-row" id="presets"></div>
+    <p class="soft" id="preset-note"></p>
+
+    <h3>Layup</h3>
+    <div class="field wide"><label for="code">Shorthand</label><input id="code" type="text" spellcheck="false" autocomplete="off"></div>
+    <div class="field wide"><label for="newmat">Material</label><select id="newmat"></select></div>
+    <div class="btn-row"><button type="button" class="primary" id="expand">Expand to stack</button></div>
+    <p class="err" id="code-err" role="alert"></p>
+    <p class="soft">Notation lists plies from ply 1 at the bottom. ±45 means 45 then −45. A trailing s mirrors the stack, a number repeats it.</p>
+
+    <h3>Ply stack, top to bottom</h3>
+    <ol class="plies" id="plies" reversed></ol>
+    <div class="btn-row"><button type="button" id="add-ply">Add ply on top</button></div>
+
+    <h3>Loads</h3>
+    <div class="field"><label for="Nx">Nx</label><input id="Nx" type="number" step="10"><span class="unit">kN/m</span></div>
+    <div class="field"><label for="Ny">Ny</label><input id="Ny" type="number" step="10"><span class="unit">kN/m</span></div>
+    <div class="field"><label for="Nxy">Nxy</label><input id="Nxy" type="number" step="10"><span class="unit">kN/m</span></div>
+    <div class="field"><label for="Mx">Mx</label><input id="Mx" type="number" step="10"><span class="unit">N·mm/mm</span></div>
+    <div class="field"><label for="My">My</label><input id="My" type="number" step="10"><span class="unit">N·mm/mm</span></div>
+    <div class="field"><label for="Mxy">Mxy</label><input id="Mxy" type="number" step="10"><span class="unit">N·mm/mm</span></div>
+    <div class="field"><label for="f12">F12*</label><input id="f12" type="number" step="0.1" min="-1" max="1"><span class="unit"></span></div>
+    <p class="err" id="load-err" role="alert"></p>
+
+    <h3>Material library</h3>
+    <div class="field wide"><label for="libmat">Edit</label><select id="libmat"></select></div>
+    <div id="libfields"></div>
+    <p class="soft" id="lib-source"></p>
+    <div class="btn-row"><button type="button" id="lib-reset">Reset library</button><button type="button" id="copy-link">Copy link</button></div>
+  </section>
+
+  <section class="panel solution" aria-labelledby="solution-h">
+    <h2 id="solution-h">Solution</h2>
+    <div class="bar">
+      <label class="check"><input type="checkbox" id="overlay">Overlay one ply E(θ)</label>
+      <span class="spacer"></span>
+      <span class="soft" id="bar-note"></span>
+    </div>
+    <div class="stage tall"><canvas class="main" aria-label="Laminate cross section, polar plot of Ex and through thickness plots"></canvas></div>
+    <p class="note" id="status-note"></p>
+  </section>
+
+  <section class="panel find" aria-labelledby="find-h">
+    <h2 id="find-h">Find</h2>
+    <div id="warnings" role="alert"></div>
+    <div class="answers">
+      <div class="answer" id="ans-ex"><span class="q">Ex</span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+      <div class="answer" id="ans-ey"><span class="q">Ey</span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+      <div class="answer" id="ans-gxy"><span class="q">Gxy</span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+      <div class="answer" id="ans-nu"><span class="q"><span class="sym">ν</span>xy</span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+      <div class="answer" id="ans-ms"><span class="q">First ply failure, max stress</span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+      <div class="answer" id="ans-tw"><span class="q">First ply failure, Tsai Wu</span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+    </div>
+    <h3>A, B and D</h3>
+    <div class="abd">
+      <div class="table-wrap"><table class="data" id="t-a"></table></div>
+      <div class="table-wrap"><table class="data" id="t-b"></table></div>
+      <div class="table-wrap"><table class="data" id="t-d"></table></div>
+    </div>
+    <h3>Ply by ply, material axes</h3>
+    <div class="table-wrap"><table class="data" id="t-plies"></table></div>
+    <div class="btn-row">
+      <button type="button" id="csv">Export CSV</button>
+      <button type="button" id="png">Export PNG</button>
+    </div>
+  </section>
+
+  <details class="method">
+    <summary>Method</summary>
+    <div class="notes">
+      <p>This is classical laminate theory. Each ply is a thin orthotropic sheet in plane stress. Its reduced stiffness Q in material axes (1 along the fibers, 2 across) is rotated to the laminate axes to get Q̄, and then the plies are stacked through the thickness.</p>
+      <div class="eq">Q11 = E1/(1 − ν12ν21)   Q12 = ν12E2/(1 − ν12ν21)   Q22 = E2/(1 − ν12ν21)   Q66 = G12
+A = Σ Q̄ (z_k − z_k−1)    B = ½ Σ Q̄ (z_k² − z_k−1²)    D = ⅓ Σ Q̄ (z_k³ − z_k−1³)
+[N; M] = [A B; B D] [ε0; κ]        ply strain ε(z) = ε0 + z κ
+Ex = 1/(h a11)   Ey = 1/(h a22)   Gxy = 1/(h a66)   νxy = −a12/a11,  a = A⁻¹</div>
+      <p>The in plane properties come from the inverse of A, so for an unsymmetric stack they are the "membrane" values with bending held free. The polar plot rotates the whole laminate by θ and recomputes Ex each time.</p>
+      <p>First ply failure: for each ply, at its top and bottom surface, the stresses in material axes are checked. Because everything is linear, the load can be scaled by a factor λ until the first ply fails.</p>
+      <div class="eq">Max stress:  λ = 1 / max(σ1/X, σ2/Y, |τ12|/S)   (X and Y take the tension or compression value by sign)
+Tsai Wu:     F1σ1 + F2σ2 + F11σ1² + F22σ2² + F66τ12² + 2F12σ1σ2 = 1
+             F1 = 1/Xt − 1/Xc   F11 = 1/(Xt Xc)   F66 = 1/S²   F12 = F12* √(F11 F22)
+             solve a λ² + b λ − 1 = 0 for the smallest positive λ</div>
+      <p>Conventions: ply 1 is the bottom ply at z = −h/2. Angles are measured counterclockwise from the x axis. Shear strain is engineering shear strain γ. Loads are per unit width: N in kN/m (same as N/mm), M in N·mm/mm. The Tsai Wu mode is named after whichever term is largest at failure.</p>
+      <p>Limits: linear elastic plies, perfect bonding, no thermal or moisture strains (ΔT is a possible next step), no progressive failure after the first ply, no interlaminar stresses. The fairing preset is an example layup only, not a real part.</p>
+      <p>Material data: T300/5208 is from Kaw, <i>Mechanics of Composite Materials</i>, Table 2.1, and is the only material the benchmark checks use. AS4/3501-6, E-glass epoxy and Kevlar 49 epoxy are marked "typical values": they follow Daniel and Ishai, <i>Engineering Mechanics of Composite Materials</i>, Appendix A, but treat them as typical numbers to check against your own data sheet, not as certified properties. Ply thickness is 0.125 mm for all four; edit any value in the library. Theory: Jones, <i>Mechanics of Composite Materials</i>; Tsai and Wu (1971). Full list in <a href="https://github.com/KenChollacoop2005/Vellum/blob/main/docs/references.md">docs/references.md</a>. Benchmark checks: <a href="../../verify.html#sheet-05">Verification sheet</a>.</p>
+    </div>
+  </details>
+  <aside class="title-block" aria-label="Title block"></aside>
+</main>
+</body>
+</html>

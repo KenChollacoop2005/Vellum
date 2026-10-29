@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vellum</title>
+<meta name="description" content="Mechanical engineering tools, drawn and checked.">
+<link rel="preload" href="fonts/routed-gothic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/sheet.css">
+<link rel="stylesheet" href="css/cover.css">
+<script type="module" src="core/cover.js"></script>
+</head>
+<body>
+<main class="sheet cover">
+  <header class="mark">
+    <h1>Vellum</h1>
+    <p>Mechanical engineering tools, drawn and checked.</p>
+  </header>
+
+  <section class="index-panel" aria-labelledby="index-h">
+    <h2 id="index-h">Drawing index</h2>
+    <div class="table-wrap">
+      <table class="index">
+        <thead><tr><th>Sheet</th><th>Title</th><th class="what">What it does</th><th>Checked</th></tr></thead>
+        <tbody id="index-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <nav class="thumbs" aria-label="Sheet thumbnails" id="thumbs"></nav>
+
+  <section class="about">
+    <h2>About</h2>
+    <p>I built Vellum to put the tools from my mechanical engineering classes in one place, each one drawn like a sheet in a drawing set. Every tool is checked against textbook or published benchmark answers, and those checks run live on the Verification sheet.</p>
+    <p class="links">
+      <a href="https://github.com/KenChollacoop2005/Vellum">GitHub repo</a>
+      <a href="https://kenchollacoop2005.github.io/Bulletin/">Portfolio</a>
+    </p>
+  </section>
+
+  <aside class="title-block" aria-label="Title block"></aside>
+</main>
+</body>
+</html>

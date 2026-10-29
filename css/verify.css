@@ -1,0 +1,18 @@
+/* Verification sheet */
+.verify { display: grid; grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem); grid-template-areas: "head head" "intro stamp" "results results" ". tblock"; }
+.verify .intro { grid-area: intro; max-width: 52rem; }
+.verify .results { grid-area: results; }
+.verify .stamp { grid-area: stamp; align-self: center; justify-self: center; }
+.verify .summary { font-family: var(--font-letter); text-transform: uppercase; letter-spacing: var(--track); color: var(--ink); margin: 0.6rem 0; }
+table.checks td { vertical-align: top; }
+table.checks td.text { min-width: 9rem; }
+table.checks td.desc { min-width: 14rem; }
+table.checks tr.group th { text-align: left; background: var(--vellum-deep); color: var(--ink); padding-top: 0.5rem; }
+table.checks .res-ok { color: var(--check-green); font-family: var(--font-letter); letter-spacing: var(--track); }
+table.checks .res-fail { color: var(--red-pencil); font-family: var(--font-letter); letter-spacing: var(--track); }
+table.checks .res-wait { color: var(--graphite); font-family: var(--font-letter); letter-spacing: var(--track); }
+table.checks progress { width: 6rem; height: 0.6rem; accent-color: var(--graphite); vertical-align: middle; }
+table.checks .note { display: block; color: var(--graphite); font-size: 0.7rem; white-space: normal; }
+@media (max-width: 900px) {
+  .verify { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "intro" "stamp" "results" "tblock"; }
+}

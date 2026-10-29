@@ -1,0 +1,41 @@
+/* Cover sheet */
+.cover {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
+  grid-template-areas:
+    "mark mark"
+    "index thumbs"
+    "about tblock";
+  gap: 0;
+}
+.cover .mark { grid-area: mark; padding: 1.2rem 0.75rem 1rem; border-bottom: 1px solid var(--graphite); }
+.cover .mark h1 { font-size: var(--fs-5); letter-spacing: 0.32em; }
+.cover .mark p { margin-top: 0.35rem; color: var(--graphite); font-size: var(--fs-2); }
+.cover .index-panel { grid-area: index; padding: 0.9rem 0.75rem; border-right: 1px solid var(--graphite); }
+.cover .thumbs { grid-area: thumbs; padding: 0.9rem 0.75rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; align-content: start; }
+.cover .thumbs a { display: block; border: 1px solid var(--hairline); background: var(--vellum); text-decoration: none; color: var(--graphite); }
+.cover .thumbs a:hover { border-color: var(--graphite); }
+.cover .thumbs img { width: 100%; height: auto; }
+.cover .thumbs span { display: block; font-family: var(--font-letter); letter-spacing: var(--track); font-size: 0.65rem; padding: 0.1rem 0.35rem; border-top: 1px solid var(--hairline); }
+.cover .about { grid-area: about; padding: 0.9rem 0.75rem; border-top: 1px solid var(--graphite); border-right: 1px solid var(--graphite); max-width: none; }
+.cover .about p { max-width: 46rem; }
+.cover .title-block { grid-area: tblock; }
+
+table.index { width: 100%; border-collapse: collapse; }
+table.index th, table.index td { border-bottom: 1px solid var(--hairline); padding: 0.45rem 0.4rem; text-align: left; vertical-align: baseline; }
+table.index th { font-family: var(--font-letter); text-transform: uppercase; letter-spacing: var(--track); font-weight: 400; color: var(--graphite); font-size: var(--fs-0); border-bottom-color: var(--graphite); }
+table.index td.no { font-family: var(--font-letter); font-size: var(--fs-3); color: var(--ink); width: 3.5rem; }
+table.index td.title a { font-family: var(--font-letter); text-transform: uppercase; letter-spacing: var(--track); color: var(--ink); text-decoration: none; font-size: var(--fs-1); }
+table.index td.title a:hover { text-decoration: underline; }
+table.index td.what { color: var(--graphite); }
+table.index td.chk { font-family: var(--font-letter); text-transform: uppercase; letter-spacing: var(--track); font-size: var(--fs-0); white-space: nowrap; }
+.links { margin-top: 0.6rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+
+@media (max-width: 900px) {
+  .cover { grid-template-columns: minmax(0, 1fr); grid-template-areas: "mark" "index" "thumbs" "about" "tblock"; }
+  .cover .mark h1 { font-size: var(--fs-4); letter-spacing: 0.24em; }
+  .cover .index-panel, .cover .about { border-right: 0; }
+  .cover .thumbs { grid-template-columns: 1fr 1fr; border-top: 1px solid var(--hairline); }
+  table.index td.what { display: none; }
+  table.index th.what { display: none; }
+}

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sheet 01 Frame and truss solver | Vellum</title>
+<link rel="stylesheet" href="../../css/tokens.css">
+<link rel="stylesheet" href="../../css/base.css">
+<link rel="stylesheet" href="../../css/sheet.css">
+<script type="module" src="ui.js"></script>
+</head>
+<body>
+<main class="sheet tool">
+  <header class="sheet-head">
+    <span class="no">SHEET 01</span>
+    <h1>Frame and truss solver</h1>
+    <p class="subtitle">Draw a structure, load it, see where the forces go.</p>
+    <a class="wordmark" href="../../index.html">VELLUM</a>
+  </header>
+
+  <section class="panel given" aria-labelledby="given-h">
+    <h2 id="given-h">Given</h2>
+    <h3>Presets</h3>
+    <div class="btn-row" id="presets"></div>
+
+    <h3>Edit</h3>
+    <div class="btn-row" role="group" aria-label="Canvas tool">
+      <button type="button" data-tool="select" aria-pressed="true">Select</button>
+      <button type="button" data-tool="node" aria-pressed="false">Add node</button>
+      <button type="button" data-tool="member" aria-pressed="false">Add member</button>
+    </div>
+    <div class="btn-row">
+      <button type="button" id="undo">Undo</button>
+      <button type="button" id="redo">Redo</button>
+      <button type="button" id="delete">Delete</button>
+      <button type="button" id="clear">Clear</button>
+    </div>
+    <div class="field"><label for="grid">Grid</label><input id="grid" type="number" step="0.1" min="0.05" value="0.5"><span class="unit">m</span></div>
+
+    <h3>Add by coordinates</h3>
+    <div class="field"><label for="nx">Node x</label><input id="nx" type="number" step="0.5" value="0"><span class="unit">m</span></div>
+    <div class="field"><label for="ny">Node y</label><input id="ny" type="number" step="0.5" value="0"><span class="unit">m</span></div>
+    <div class="btn-row"><button type="button" id="add-node">Add node</button></div>
+    <div class="field"><label for="ma">Member from node</label><input id="ma" type="number" step="1" min="1" value="1"><span class="unit"></span></div>
+    <div class="field"><label for="mb">to node</label><input id="mb" type="number" step="1" min="1" value="2"><span class="unit"></span></div>
+    <div class="btn-row"><button type="button" id="add-member">Add member</button></div>
+    <p class="err" id="add-err"></p>
+
+    <h3>Section and material for new members</h3>
+    <div class="field wide"><label for="mat">Material</label><select id="mat"></select></div>
+    <div class="field"><label for="E">E</label><input id="E" type="number" step="1" value="200"><span class="unit">GPa</span></div>
+    <div class="field wide"><label for="sec">Section</label><select id="sec"></select></div>
+    <div class="field"><label for="A">A</label><input id="A" type="number" step="100" value="5000"><span class="unit">mm²</span></div>
+    <div class="field"><label for="I">I</label><input id="I" type="number" step="0.5" value="8"><span class="unit">10⁶mm⁴</span></div>
+    <div class="field wide"><label for="mtype">Member type</label><select id="mtype"><option value="frame">Frame</option><option value="truss">Truss</option></select></div>
+    <div class="btn-row">
+      <button type="button" id="apply-all">Apply to all members</button>
+      <button type="button" id="all-truss">All truss</button>
+      <button type="button" id="all-frame">All frame</button>
+    </div>
+    <p class="err" id="sec-err"></p>
+
+    <h3>Selection</h3>
+    <div id="sel-editor"><p class="soft">Select a node or member on the drawing to edit supports and loads.</p></div>
+
+    <div class="btn-row"><button type="button" id="copy-link">Copy link</button></div>
+  </section>
+
+  <section class="panel solution" aria-labelledby="solution-h">
+    <h2 id="solution-h">Solution</h2>
+    <div class="bar">
+      <label class="check"><span>Color</span>&nbsp;<select id="field" aria-label="Color members by"><option value="axial">Axial force</option><option value="moment">Bending moment</option><option value="none">None</option></select></label>
+      <label class="check"><input type="checkbox" id="show-moment">Moment diagram</label>
+      <label class="check"><input type="checkbox" id="show-labels">Force labels</label>
+      <span class="spacer"></span>
+      <label class="check"><span>Deflection x</span>&nbsp;<input id="dscale" type="number" min="0" step="10" value="0" aria-label="Deflection scale factor, 0 means auto"></label>
+      <button type="button" id="fit">Fit</button>
+    </div>
+    <div class="stage"><canvas class="main" tabindex="0" aria-label="Structure drawing. Click to select, drag empty space to pan, wheel to zoom."></canvas><div class="tip" hidden></div></div>
+    <p class="note" id="status-note"></p>
+  </section>
+
+  <section class="panel find" aria-labelledby="find-h">
+    <h2 id="find-h">Find</h2>
+    <p class="err" id="solve-err" role="alert"></p>
+    <div class="answers">
+      <div class="answer" id="ans-axial"><span class="q">Max |axial|</span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+      <div class="answer" id="ans-defl"><span class="q">Max |deflection|</span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+      <div class="answer" id="ans-moment"><span class="q">Max |moment|</span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+    </div>
+    <h3>Reactions</h3>
+    <div class="table-wrap"><table class="data" id="t-react"></table></div>
+    <h3>Member end forces</h3>
+    <div class="table-wrap"><table class="data" id="t-members"></table></div>
+    <h3>Node displacements</h3>
+    <div class="table-wrap"><table class="data" id="t-disp"></table></div>
+    <div class="btn-row">
+      <button type="button" id="csv">Export CSV</button>
+      <button type="button" id="png">Export PNG</button>
+    </div>
+  </section>
+
+  <details class="method">
+    <summary>Method</summary>
+    <div class="notes">
+      <p>This is the direct stiffness method. Each member gets a small stiffness matrix in its own axes, gets rotated into global x and y, and gets added into one big matrix K for the whole structure. Then I solve K u = F for the node displacements u and work back to member forces.</p>
+      <p>A frame member has three degrees of freedom at each end (u, v and rotation θ) and uses Euler Bernoulli beam theory. A truss member only carries axial force, so it only has the EA/L terms.</p>
+      <div class="eq">frame, local axes:
+  axial      EA/L  [ 1  -1 ]
+  bending    EI/L³ [ 12   6L  -12   6L
+                      6L  4L²  -6L  2L²
+                     -12  -6L   12  -6L
+                      6L  2L²  -6L  4L² ]
+global:      k = Tᵀ k_local T
+member ends: f = k_local T u − f_load</div>
+      <p>A uniform load w on a frame member turns into the consistent nodal loads wL/2 and wL²/12 at each end. On a truss member it is lumped as wL/2 to each node, since a truss member can't carry bending. A "global y" load acts per meter of member length. A "perpendicular" load acts normal to the member.</p>
+      <p>The structure matrix is banded, so nodes are renumbered with reverse Cuthill McKee to keep the band narrow and then solved with a banded Cholesky factorization. If a pivot goes to zero or negative, the structure is a mechanism and the sheet says so instead of printing nonsense. Rotations at nodes with only truss members are held, since nothing there resists them.</p>
+      <p>Signs: axial force is positive in tension. Moment is positive when it sags the member (tension on the member's local −y side). The deflected shape uses the exact cubic shape within each member, plus the extra sag from a uniform load.</p>
+      <p>Limits: linear elastic, small displacements, no shear deformation, no buckling check, members only connect at shared nodes.</p>
+      <p>References: Kassimali, <i>Matrix Analysis of Structures</i>; McGuire, Gallagher and Ziemian, <i>Matrix Structural Analysis</i>. Full list in <a href="https://github.com/KenChollacoop2005/Vellum/blob/main/docs/references.md">docs/references.md</a>. Benchmark checks: <a href="../../verify.html#sheet-01">Verification sheet</a>.</p>
+    </div>
+  </details>
+  <aside class="title-block" aria-label="Title block"></aside>
+</main>
+</body>
+</html>

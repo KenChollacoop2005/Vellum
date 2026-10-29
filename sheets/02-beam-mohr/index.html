@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sheet 02 Beam diagrams and Mohr's circle | Vellum</title>
+<link rel="stylesheet" href="../../css/tokens.css">
+<link rel="stylesheet" href="../../css/base.css">
+<link rel="stylesheet" href="../../css/sheet.css">
+<script type="module" src="ui.js"></script>
+</head>
+<body>
+<main class="sheet tool">
+  <header class="sheet-head">
+    <span class="no">SHEET 02</span>
+    <h1>Beam diagrams and Mohr's circle</h1>
+    <p class="subtitle">Shear, moment and deflection of a beam, plus stress transformation.</p>
+    <a class="wordmark" href="../../index.html">VELLUM</a>
+  </header>
+
+  <section class="panel given" aria-labelledby="given-h">
+    <h2 id="given-h">Given</h2>
+    <div id="given-beam">
+      <h3>Presets</h3>
+      <div class="btn-row" id="beam-presets"></div>
+      <h3>Beam</h3>
+      <div class="field"><label for="L">Span L</label><input id="L" type="number" step="0.5" min="0.1"><span class="unit">m</span></div>
+      <div class="field wide"><label for="support">Supports</label><select id="support"></select></div>
+      <div id="overhang-fields">
+        <div class="field"><label for="sa">Left support at</label><input id="sa" type="number" step="0.25" min="0"><span class="unit">m</span></div>
+        <div class="field"><label for="sb">Right support at</label><input id="sb" type="number" step="0.25" min="0"><span class="unit">m</span></div>
+      </div>
+      <div class="field"><label for="bE">E</label><input id="bE" type="number" step="1" min="0"><span class="unit">GPa</span></div>
+      <div class="field"><label for="bI">I</label><input id="bI" type="number" step="0.5" min="0"><span class="unit">10⁶mm⁴</span></div>
+      <p class="err" id="beam-err" role="alert"></p>
+      <h3>Loads</h3>
+      <p class="soft">Forces and distributed loads are positive downward. Moments are positive counterclockwise.</p>
+      <div id="loads"></div>
+      <div class="btn-row">
+        <button type="button" id="add-point">Add point load</button>
+        <button type="button" id="add-moment">Add moment</button>
+        <button type="button" id="add-dist">Add distributed load</button>
+      </div>
+    </div>
+    <div id="given-mohr" hidden>
+      <h3>Stress state</h3>
+      <div class="field"><label for="sx"><span class="sym">σx</span></label><input id="sx" type="number" step="5"><span class="unit">MPa</span></div>
+      <div class="field"><label for="sy"><span class="sym">σy</span></label><input id="sy" type="number" step="5"><span class="unit">MPa</span></div>
+      <div class="field"><label for="txy"><span class="sym">τxy</span></label><input id="txy" type="number" step="5"><span class="unit">MPa</span></div>
+      <p class="err" id="mohr-err" role="alert"></p>
+      <h3>Rotate the element</h3>
+      <div class="field"><label for="theta"><span class="sym">θ</span></label><input id="theta" type="number" step="1" min="-90" max="90"><span class="unit">deg</span></div>
+      <input id="theta-range" type="range" min="-90" max="90" step="0.5" aria-label="Rotation angle θ in degrees">
+      <div class="btn-row">
+        <button type="button" id="to-principal">Rotate to <span class="sym">θp</span></button>
+        <button type="button" id="to-zero">Reset <span class="sym">θ</span></button>
+      </div>
+      <h3>Presets</h3>
+      <div class="btn-row" id="mohr-presets"></div>
+    </div>
+    <div class="btn-row"><button type="button" id="copy-link">Copy link</button></div>
+  </section>
+
+  <section class="panel solution" aria-labelledby="solution-h">
+    <h2 id="solution-h">Solution</h2>
+    <div class="bar" role="tablist" aria-label="Sheet half">
+      <button type="button" role="tab" id="tab-beam" aria-selected="true" aria-pressed="true">Beam</button>
+      <button type="button" role="tab" id="tab-mohr" aria-selected="false" aria-pressed="false">Mohr's circle</button>
+      <span class="spacer"></span>
+      <span class="soft" id="bar-note"></span>
+    </div>
+    <div class="stage"><canvas class="main" tabindex="0" aria-label="Beam diagrams. Left and right arrow keys move the cursor, Shift moves faster, Home and End jump to the ends."></canvas><div class="tip" hidden></div></div>
+    <p class="note" id="cursor-read" aria-live="polite"></p>
+    <p class="note" id="status-note"></p>
+  </section>
+
+  <section class="panel find" aria-labelledby="find-h">
+    <h2 id="find-h">Find</h2>
+    <div id="find-beam">
+      <div class="answers">
+        <div class="answer" id="ans-v"><span class="q">Max |V|</span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+        <div class="answer" id="ans-m"><span class="q">Max |M|</span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+        <div class="answer" id="ans-w"><span class="q">Max |deflection|</span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+      </div>
+      <h3>Reactions</h3>
+      <div class="table-wrap"><table class="data" id="t-react"></table></div>
+      <div class="btn-row">
+        <button type="button" id="csv">Export CSV</button>
+        <button type="button" id="png">Export PNG</button>
+      </div>
+    </div>
+    <div id="find-mohr" hidden>
+      <div class="answers">
+        <div class="answer" id="ans-s1"><span class="q"><span class="sym">σ1</span></span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+        <div class="answer" id="ans-s2"><span class="q"><span class="sym">σ2</span></span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+        <div class="answer" id="ans-tmax"><span class="q"><span class="sym">τmax</span> in plane</span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+        <div class="answer" id="ans-tp"><span class="q"><span class="sym">θp</span></span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+      </div>
+      <h3>At the current <span class="sym">θ</span></h3>
+      <div class="table-wrap"><table class="data" id="t-rot"></table></div>
+      <h3>Out of plane</h3>
+      <div class="table-wrap"><table class="data" id="t-abs"></table></div>
+    </div>
+  </section>
+
+  <details class="method">
+    <summary>Method</summary>
+    <div class="notes">
+      <h3>Beam</h3>
+      <p>The reactions come from a finite element model of the beam: 240 Euler Bernoulli beam elements plus extra nodes at every support and load point. Point loads and moments go straight onto nodes. Distributed loads (uniform or linearly varying) use consistent nodal loads, so the nodal deflections and the reactions are exact for these load types, even for the statically indeterminate cases.</p>
+      <p>Once the reactions are known, V and M come straight from statics on a free body cut at each x. That makes the diagrams exact, including the jumps at point loads and point moments. The sheet also compares the finite element member end moments with the statics moments at every node; they agree to round off.</p>
+      <div class="eq">V(x) = Σ upward forces left of x
+M(x) = Σ F_i (x − x_i) − Σ C_j        (C_j counterclockwise couples left of x)
+dV/dx = −q(x)      dM/dx = V(x)      EI v'' = M(x)</div>
+      <p>Signs: loads are positive downward, couples positive counterclockwise, M positive when it sags the beam, deflection positive upward. Shear and moment are drawn above the axis when positive.</p>
+      <h3>Mohr's circle</h3>
+      <p>For plane stress, rotating the element by θ (counterclockwise) gives:</p>
+      <div class="eq">σx' = (σx + σy)/2 + (σx − σy)/2 cos 2θ + τxy sin 2θ
+τx'y' = −(σx − σy)/2 sin 2θ + τxy cos 2θ
+center C = (σx + σy)/2     radius R = √(((σx − σy)/2)² + τxy²)
+σ1,2 = C ± R    τmax = R    tan 2θp = 2τxy / (σx − σy)</div>
+      <p>Convention used everywhere on this sheet: σ is plotted to the right and τ is plotted positive downward. The point X is (σx, τxy). With this choice, rotating the element counterclockwise by θ moves the point counterclockwise around the circle by 2θ. θp is measured counterclockwise from the x axis to the σ1 direction.</p>
+      <p>The absolute maximum shear treats the third principal stress as σ3 = 0 (plane stress), so it is half the spread of σ1, σ2 and 0. It is bigger than the in plane τmax whenever σ1 and σ2 have the same sign.</p>
+      <p>Limits: linear elastic, small deflections, no shear deformation in the beam.</p>
+      <p>References: Hibbeler, <i>Mechanics of Materials</i>; Gere and Goodno, <i>Mechanics of Materials</i>. Full list in <a href="https://github.com/KenChollacoop2005/Vellum/blob/main/docs/references.md">docs/references.md</a>. Benchmark checks: <a href="../../verify.html#sheet-02">Verification sheet</a>.</p>
+    </div>
+  </details>
+  <aside class="title-block" aria-label="Title block"></aside>
+</main>
+</body>
+</html>

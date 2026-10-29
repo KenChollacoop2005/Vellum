@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sheet 03 Topology optimizer | Vellum</title>
+<link rel="stylesheet" href="../../css/tokens.css">
+<link rel="stylesheet" href="../../css/base.css">
+<link rel="stylesheet" href="../../css/sheet.css">
+<script type="module" src="ui.js"></script>
+</head>
+<body>
+<main class="sheet tool">
+  <header class="sheet-head">
+    <span class="no">SHEET 03</span>
+    <h1>Topology optimizer</h1>
+    <p class="subtitle">Let the algorithm carve away material you don't need.</p>
+    <a class="wordmark" href="../../index.html">VELLUM</a>
+  </header>
+
+  <section class="panel given" aria-labelledby="given-h">
+    <h2 id="given-h">Given</h2>
+    <h3>Presets</h3>
+    <div class="btn-row" id="presets"></div>
+    <h3>Domain</h3>
+    <div class="field wide"><label for="mesh">Mesh</label><select id="mesh"><option value="60x20">60 × 20</option><option value="120x40">120 × 40</option><option value="180x60">180 × 60</option><option value="60x30">60 × 30</option><option value="60x60">60 × 60</option><option value="90x90">90 × 90</option></select></div>
+    <p class="soft">Changing the mesh resets supports, loads and painted regions to the preset.</p>
+    <div class="field"><label for="volfrac">Volume fraction</label><input id="volfrac" type="number" step="0.05" min="0.05" max="0.95"><span class="unit"></span></div>
+    <div class="field"><label for="penal">Penalty p</label><input id="penal" type="number" step="0.5" min="1" max="6"><span class="unit"></span></div>
+    <div class="field"><label for="rmin">Filter radius</label><input id="rmin" type="number" step="0.1" min="1" max="10"><span class="unit">elements</span></div>
+    <div class="field wide"><label for="ft">Filter</label><select id="ft"><option value="1">Sensitivity filter (ft = 1)</option><option value="2">Density filter (ft = 2)</option></select></div>
+    <div class="field"><label for="maxiter">Max iterations</label><input id="maxiter" type="number" step="10" min="1" max="2000"><span class="unit"></span></div>
+    <div class="field"><label for="tol">Stop when change below</label><input id="tol" type="number" step="0.005" min="0.0001" max="0.5"><span class="unit"></span></div>
+    <p class="err" id="param-err" role="alert"></p>
+
+    <h3>Edit on the drawing</h3>
+    <div class="btn-row" role="group" aria-label="Canvas tool" id="tools">
+      <button type="button" data-tool="pan">Pan</button>
+      <button type="button" data-tool="fixx">Fix x</button>
+      <button type="button" data-tool="fixy">Fix y</button>
+      <button type="button" data-tool="fixxy">Fix both</button>
+      <button type="button" data-tool="load">Load</button>
+      <button type="button" data-tool="clear">Clear node</button>
+      <button type="button" data-tool="solid">Paint solid</button>
+      <button type="button" data-tool="void">Paint void</button>
+      <button type="button" data-tool="erase">Erase paint</button>
+    </div>
+    <div class="field wide"><label for="ldir">Load direction</label><select id="ldir"><option value="down">Down</option><option value="up">Up</option><option value="left">Left</option><option value="right">Right</option></select></div>
+    <div class="field"><label for="brush">Brush size</label><input id="brush" type="number" min="1" max="5" step="1"><span class="unit">elements</span></div>
+    <p class="soft">Click or drag over nodes to add supports and unit loads. Edits restart the optimization.</p>
+    <div class="btn-row"><button type="button" id="copy-link">Copy link</button></div>
+  </section>
+
+  <section class="panel solution" aria-labelledby="solution-h">
+    <h2 id="solution-h">Solution</h2>
+    <div class="bar">
+      <button type="button" class="primary" id="run">Run</button>
+      <button type="button" class="primary" id="step">Step</button>
+      <button type="button" class="primary" id="reset">Reset</button>
+      <label class="check"><input type="checkbox" id="deformed">Deformed mesh</label>
+      <span class="spacer"></span>
+      <button type="button" id="fit">Fit</button>
+    </div>
+    <div class="stage"><canvas class="main" tabindex="0" aria-label="Density field, graphite is solid and vellum is void, with supports and loads"></canvas></div>
+    <p class="note" id="status-note"></p>
+  </section>
+
+  <section class="panel find" aria-labelledby="find-h">
+    <h2 id="find-h">Find</h2>
+    <p class="err" id="run-err" role="alert"></p>
+    <div class="answers">
+      <div class="answer" id="ans-c"><span class="q">Compliance</span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+      <div class="answer" id="ans-vol"><span class="q">Volume fraction</span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+      <div class="answer" id="ans-it"><span class="q">Iteration</span><span class="v">0<span class="u"></span></span><span class="s"></span></div>
+      <div class="answer" id="ans-conv"><span class="q">Converged</span><span class="v">no<span class="u"></span></span><span class="s"></span></div>
+    </div>
+    <h3>Compliance history</h3>
+    <div class="frf"><canvas id="hist" aria-label="Compliance versus iteration"></canvas></div>
+    <div class="table-wrap"><table class="data" id="t-stats"></table></div>
+    <h3>Export</h3>
+    <div class="field"><label for="esize">Element size</label><input id="esize" type="number" step="0.5" min="0.01"><span class="unit">mm</span></div>
+    <div class="field"><label for="thick">STL thickness</label><input id="thick" type="number" step="0.5" min="0.01"><span class="unit">mm</span></div>
+    <div class="btn-row">
+      <button type="button" id="svg">Export SVG</button>
+      <button type="button" id="stl">Export STL</button>
+      <button type="button" id="csv">Export CSV</button>
+      <button type="button" id="png">Export PNG</button>
+    </div>
+    <p class="soft">SVG and STL use density above 0.5. Cells that touch only at a corner get filled so the STL stays watertight.</p>
+  </section>
+
+  <details class="method">
+    <summary>Method</summary>
+    <div class="notes">
+      <p>This is minimum compliance topology optimization with the modified SIMP model, ported line by line from <i>top88.m</i> (Andreassen, Clausen, Schevenels, Lazarov and Sigmund, 2011). The domain is a grid of square bilinear plane stress elements. Each element has a density x between 0 and 1, and its stiffness is</p>
+      <div class="eq">E(x) = Emin + x^p (E0 − Emin)       E0 = 1, Emin = 1e-9, ν = 0.3
+minimize   c = Fᵀ U = Σ E(x_e) u_eᵀ k0 u_e
+subject to K(x) U = F,   Σ x_e = volfrac · n,   0 ≤ x ≤ 1
+dc/dx_e = −p x_e^(p−1) (E0 − Emin) u_eᵀ k0 u_e</div>
+      <p>Each iteration solves K U = F, computes the sensitivities, filters them and then updates the densities with the optimality criteria method (move limit 0.2, bisection on the volume Lagrange multiplier). The sensitivity filter (ft = 1) averages x·dc over a cone of radius rmin; the density filter (ft = 2) filters the densities themselves. It stops when no density changes by more than the tolerance (0.01 by default).</p>
+      <div class="eq">x_new = max(0, x − m, min(1, x + m, x √(−dc / (λ dv))))</div>
+      <p>The port keeps top88's node and element numbering, its KE matrix and its filter so results can be compared directly. MBB 60 × 20 converges in 94 iterations with c = 203.19, the same as an independent top88 port. Speed comes from a banded Cholesky solver on typed arrays (faster than a Jacobi preconditioned CG in my tests: 13 ms against 85 ms per iteration at 60 × 20) running in a Web Worker so the page stays responsive.</p>
+      <p>Gray elements: the measure of non discreteness from Sigmund (2007), M = Σ 4 x (1 − x) / n, shown in percent. 0 percent is perfectly black and white.</p>
+      <p>Limits: 2D plane stress, linear elastic, one load case, small displacements, no stress or buckling constraints. Loads are unit forces, so compliance is in consistent units.</p>
+      <p>References: Andreassen et al. (2011); Sigmund (2001) 99 line code; Sigmund (2007). Full list in <a href="https://github.com/KenChollacoop2005/Vellum/blob/main/docs/references.md">docs/references.md</a>. Benchmark checks: <a href="../../verify.html#sheet-03">Verification sheet</a>.</p>
+    </div>
+  </details>
+  <aside class="title-block" aria-label="Title block"></aside>
+</main>
+</body>
+</html>

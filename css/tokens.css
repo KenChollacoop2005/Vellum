@@ -1,0 +1,60 @@
+/* Color tokens */
+:root {
+  --table: #D9D5CB;
+  --vellum: #F4F1E8;
+  --vellum-deep: #ECE7DA;
+  --grid: #A4D4E6;
+  --graphite: #3B3E42;
+  --graphite-soft: #7C7F84;
+  --ink: #121314;
+  --hairline: #B8B2A4;
+  --red-pencil: #B23A2E;
+  --draft-blue: #2C5B86;
+  --check-green: #3E6B48;
+
+  /* Type */
+  --font-letter: "Routed Gothic", "B612", ui-monospace, monospace;
+  --font-ui: "B612", ui-monospace, monospace;
+  --font-mono: "B612 Mono", ui-monospace, monospace;
+  --fs-0: 0.75rem;
+  --fs-1: 0.875rem;
+  --fs-2: 1rem;
+  --fs-3: 1.25rem;
+  --fs-4: 1.75rem;
+  --fs-5: 2.5rem;
+  --track: 0.08em;
+
+  /* Motion */
+  --t-ui: 150ms;
+}
+
+@font-face {
+  font-family: "Routed Gothic";
+  src: url("../fonts/routed-gothic.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "B612";
+  src: url("../fonts/b612-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "B612";
+  src: url("../fonts/b612-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "B612 Mono";
+  src: url("../fonts/b612-mono-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "B612 Mono";
+  src: url("../fonts/b612-mono-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
