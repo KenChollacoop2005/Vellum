@@ -59,6 +59,7 @@
       <button type="button" class="primary" id="step">Step</button>
       <button type="button" class="primary" id="reset">Reset</button>
       <label class="check"><input type="checkbox" id="deformed">Deformed mesh</label>
+      <label class="check"><input type="checkbox" id="fast">Fast</label>
       <span class="spacer"></span>
       <button type="button" id="fit">Fit</button>
     </div>
@@ -102,7 +103,7 @@ subject to K(x) U = F,   Σ x_e = volfrac · n,   0 ≤ x ≤ 1
 dc/dx_e = −p x_e^(p−1) (E0 − Emin) u_eᵀ k0 u_e</div>
       <p>Each iteration solves K U = F, computes the sensitivities, filters them and then updates the densities with the optimality criteria method (move limit 0.2, bisection on the volume Lagrange multiplier). The sensitivity filter (ft = 1) averages x·dc over a cone of radius rmin; the density filter (ft = 2) filters the densities themselves. It stops when no density changes by more than the tolerance (0.01 by default).</p>
       <div class="eq">x_new = max(0, x − m, min(1, x + m, x √(−dc / (λ dv))))</div>
-      <p>The port keeps top88's node and element numbering, its KE matrix and its filter so results can be compared directly. MBB 60 × 20 converges in 94 iterations with c = 203.19, the same as an independent top88 port. Speed comes from a banded Cholesky solver on typed arrays (faster than a Jacobi preconditioned CG in my tests: 13 ms against 85 ms per iteration at 60 × 20) running in a Web Worker so the page stays responsive.</p>
+      <p>The port keeps top88's node and element numbering, its KE matrix and its filter so results can be compared directly. MBB 60 × 20 converges in 94 iterations with c = 203.19, the same as an independent top88 port. While animating, each iteration is held to at least 60 ms so you can watch the material move; tick Fast to run at full speed. Speed comes from a banded Cholesky solver on typed arrays (faster than a Jacobi preconditioned CG in my tests: 13 ms against 85 ms per iteration at 60 × 20) running in a Web Worker so the page stays responsive.</p>
       <p>Gray elements: the measure of non discreteness from Sigmund (2007), M = Σ 4 x (1 − x) / n, shown in percent. 0 percent is perfectly black and white.</p>
       <p>Limits: 2D plane stress, linear elastic, one load case, small displacements, no stress or buckling constraints. Loads are unit forces, so compliance is in consistent units.</p>
       <p>References: Andreassen et al. (2011); Sigmund (2001) 99 line code; Sigmund (2007). Full list in <a href="https://github.com/KenChollacoop2005/Vellum/blob/main/docs/references.md">docs/references.md</a>. Benchmark checks: <a href="../../verify.html#sheet-03">Verification sheet</a>.</p>

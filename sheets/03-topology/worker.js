@@ -5,6 +5,8 @@ let problem = null;
 let st = null;
 let running = false;
 let token = 0;
+let paced = true;
+const PACE_MS = 60; // shortest time per iteration while animating
 
 function report(rec) {
   const xPhys = Float64Array.from(st.xPhys);
@@ -30,8 +32,10 @@ function stepOnce() {
 
 async function runLoop(my) {
   while (running && my === token && !isDone()) {
+    const t0 = performance.now();
     if (!stepOnce()) return;
-    await new Promise((r) => setTimeout(r, 0));
+    const wait = paced ? Math.max(0, PACE_MS - (performance.now() - t0)) : 0;
+    await new Promise((r) => setTimeout(r, wait));
   }
   running = false;
   postMessage({ type: "stopped" });
@@ -45,6 +49,8 @@ onmessage = (e) => {
     problem = buildProblem(m.cfg);
     st = createOptimizer(problem);
     postMessage({ type: "ready", xPhys: Float64Array.from(st.xPhys) });
+  } else if (m.cmd === "pace") {
+    paced = !!m.paced;
   } else if (m.cmd === "run" && st) {
     if (running) return;
     running = true;

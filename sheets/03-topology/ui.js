@@ -18,7 +18,7 @@ function presetState(key, nelx, nely) {
   const bc = p.bc(nx, ny);
   return {
     preset: key, nelx: nx, nely: ny, volfrac: d.volfrac, penal: d.penal, rmin: d.rmin * (nx / d.nelx), ft: d.ft,
-    maxIter: 300, tol: 0.01, supports: bc.supports, loads: bc.loads, passive: bc.passive, esize: 1, thick: 0.1 * Math.min(nx, ny),
+    maxIter: 300, tol: 0.01, supports: bc.supports, loads: bc.loads, passive: bc.passive, esize: 1, thick: 0.1 * Math.min(nx, ny), fast: false,
   };
 }
 
@@ -40,6 +40,7 @@ function validState(s) {
   if (!s || !PRESETS_TOP[s.preset] || !Number.isInteger(s.nelx) || !Number.isInteger(s.nely)) return false;
   if (!MESHES[`${s.nelx}x${s.nely}`]) return false;
   if (![s.volfrac, s.penal, s.rmin, s.ft, s.maxIter, s.tol, s.esize, s.thick].every(f)) return false;
+  if (s.fast !== undefined && typeof s.fast !== "boolean") return false;
   const nn = (s.nelx + 1) * (s.nely + 1), ne = s.nelx * s.nely;
   return Array.isArray(s.supports) && s.supports.every(([n, m]) => Number.isInteger(n) && n >= 0 && n < nn && [1, 2, 3].includes(m))
     && Array.isArray(s.loads) && s.loads.every(([n, a, b]) => Number.isInteger(n) && n >= 0 && n < nn && f(a) && f(b))
@@ -71,6 +72,7 @@ function setup() {
     worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
     worker.onmessage = onWorker;
   }
+  worker.postMessage({ cmd: "pace", paced: !state.fast });
   worker.postMessage({ cmd: "setup", cfg: {
     nelx: state.nelx, nely: state.nely, volfrac: state.volfrac, penal: state.penal, rmin: state.rmin, ft: state.ft,
     maxIter: state.maxIter, tol: state.tol, supports: state.supports, loads: state.loads, passive: state.passive,
@@ -426,6 +428,8 @@ function init() {
   $("step").addEventListener("click", () => { if (!running && !done) worker?.postMessage({ cmd: "step" }); });
   $("reset").addEventListener("click", () => { pause(); autoStart = false; setup(); });
   $("deformed").addEventListener("change", draw);
+  $("fast").checked = !!state.fast;
+  $("fast").addEventListener("change", () => { state.fast = $("fast").checked; worker?.postMessage({ cmd: "pace", paced: !state.fast }); saveState(state); });
   $("fit").addEventListener("click", () => { userView = false; fit(); draw(); });
   wireCopyLink($("copy-link"));
   $("png").addEventListener("click", () => downloadCanvas(canvas, "vellum-topology.png"));
