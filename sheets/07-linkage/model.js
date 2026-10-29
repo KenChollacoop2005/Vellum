@@ -41,10 +41,13 @@ export function grashof({ ground, crank, coupler, rocker }) {
 }
 
 // Four bar position at crank angle
-export function fourBarPosition(fb, theta) {
+export function branchSide(fb) {
+  return fb.branch === "crossed" ? -1 : 1;
+}
+
+export function fourBarPosition(fb, theta, side = branchSide(fb)) {
   const O2 = [0, 0], O4 = [fb.ground, 0];
   const A = [fb.crank * Math.cos(theta), fb.crank * Math.sin(theta)];
-  const side = fb.branch === "crossed" ? -1 : 1;
   const B = circleIntersect(A, fb.coupler, O4, fb.rocker, side);
   if (!B) return null;
   const th3 = Math.atan2(B[1] - A[1], B[0] - A[0]);
@@ -55,29 +58,67 @@ export function fourBarPosition(fb, theta) {
   const muRaw = mu;
   if (mu > Math.PI / 2) mu = Math.PI - mu;
   const closure = Math.max(Math.abs(dist(A, B) - fb.coupler), Math.abs(dist(B, O4) - fb.rocker), Math.abs(dist(A, O2) - fb.crank));
-  return { O2, O4, A, B, P, mu, muRaw, closure, theta };
+  return { O2, O4, A, B, P, mu, muRaw, closure, theta, side };
 }
 
-export function couplerVelocity(fb, theta, omega) {
-  const a = fourBarPosition(fb, theta - FD_STEP), b = fourBarPosition(fb, theta + FD_STEP);
+export function couplerVelocity(fb, theta, omega, side = branchSide(fb)) {
+  const a = fourBarPosition(fb, theta - FD_STEP, side), b = fourBarPosition(fb, theta + FD_STEP, side);
   if (!a || !b) return null;
   return [((b.P[0] - a.P[0]) / (2 * FD_STEP)) * omega, ((b.P[1] - a.P[1]) / (2 * FD_STEP)) * omega];
 }
 
-// Sweep crank through a full turn
+// Motion cycle: full crank turn, or a rocker swing on one circuit
+export function cycleOf(fb) {
+  const ranges = feasibleRanges(fb);
+  if (ranges.length === 1 && ranges[0][1] - ranges[0][0] >= TWO_PI - 1e-9) return { mode: "crank", ranges, circuits: 2 };
+  if (!ranges.length) return { mode: "none", ranges, circuits: 0 };
+  const n = ranges.length;
+  const circuit = (((fb.circuit ?? 0) % n) + n) % n;
+  const [a, b] = ranges[circuit];
+  return { mode: "rocker", ranges, circuit, a, b, circuits: n };
+}
+
+// Input angle and branch at a phase in [0, 1)
+export function cyclePose(fb, cyc, phase) {
+  const p = ((phase % 1) + 1) % 1;
+  const s0 = branchSide(fb);
+  if (cyc.mode === "crank") return { theta: TWO_PI * p, side: s0, half: 0 };
+  const w = cyc.b - cyc.a;
+  if (p < 0.5) return { theta: cyc.a + (w * (1 - Math.cos(2 * Math.PI * p))) / 2, side: s0, half: 0 };
+  return { theta: cyc.b - (w * (1 - Math.cos(Math.PI * (2 * p - 1)))) / 2, side: -s0, half: 1 };
+}
+
+export function positionAtPhase(fb, cyc, phase) {
+  const { theta, side } = cyclePose(fb, cyc, phase);
+  return fourBarPosition(fb, theta, side);
+}
+
+// Phase on the current half that matches an input angle
+export function phaseForTheta(cyc, theta, half = 0) {
+  if (cyc.mode === "crank") return ((theta / TWO_PI) % 1 + 1) % 1;
+  const w = cyc.b - cyc.a;
+  let t = theta;
+  while (t < cyc.a - 1e-12) t += TWO_PI;
+  while (t > cyc.b + 1e-12) t -= TWO_PI;
+  const f = Math.min(1, Math.max(0, (t - cyc.a) / w));
+  const u = Math.acos(1 - 2 * f) / Math.PI;
+  return half === 0 ? u / 2 : 0.5 + (1 - u) / 2;
+}
+
+// Sweep one full motion cycle
 export function fourBarSweep(fb, steps = 720) {
+  const cyc = cycleOf(fb);
   const pts = [];
   let maxClosure = 0, muMin = Infinity, muMax = -Infinity;
   for (let i = 0; i <= steps; i++) {
-    const th = (TWO_PI * i) / steps;
-    const p = fourBarPosition(fb, th);
+    const p = cyc.mode === "none" ? null : positionAtPhase(fb, cyc, i / steps);
     pts.push(p);
     if (!p) continue;
     maxClosure = Math.max(maxClosure, p.closure);
     muMin = Math.min(muMin, p.mu);
     muMax = Math.max(muMax, p.mu);
   }
-  return { pts, maxClosure, muMin, muMax, ranges: feasibleRanges(fb), toggles: toggles(fb) };
+  return { pts, maxClosure, muMin, muMax, ranges: cyc.ranges, cycle: cyc, toggles: toggles(fb, cyc) };
 }
 
 function assembles(fb, th) {
@@ -115,25 +156,35 @@ export function feasibleRanges(fb, steps = 3600) {
 }
 
 // Toggle angles: crank and coupler collinear, or coupler and rocker collinear
-function toggles(fb, steps = 3600) {
+function toggles(fb, cyc, steps = 3600) {
   const out = [];
-  const crossCC = (th) => {
-    const p = fourBarPosition(fb, th);
+  if (cyc.mode === "none") return out;
+  const crossCC = (ph) => {
+    const p = positionAtPhase(fb, cyc, ph);
     if (!p) return NaN;
     return p.A[0] * (p.B[1] - p.A[1]) - p.A[1] * (p.B[0] - p.A[0]);
   };
   for (let i = 0; i < steps; i++) {
-    const a = (TWO_PI * i) / steps, b = (TWO_PI * (i + 1)) / steps;
+    const a = i / steps, b = (i + 1) / steps;
     const fa = crossCC(a), fb2 = crossCC(b);
-    if (Number.isFinite(fa) && Number.isFinite(fb2) && fa * fb2 < 0) out.push({ angle: refine(crossCC, a, b), kind: "crank and coupler collinear (rocker at a limit)" });
-  }
-  for (const [s, e] of feasibleRanges(fb)) {
-    if (e - s < TWO_PI - 1e-9) {
-      out.push({ angle: s % TWO_PI, kind: "coupler and rocker collinear (crank stops)" });
-      out.push({ angle: e % TWO_PI, kind: "coupler and rocker collinear (crank stops)" });
+    if (Number.isFinite(fa) && Number.isFinite(fb2) && fa * fb2 < 0) {
+      const ph = refine(crossCC, a, b);
+      out.push({ angle: cyclePose(fb, cyc, ph).theta % TWO_PI, kind: "crank and coupler collinear (rocker at a limit)" });
     }
   }
+  if (cyc.mode === "rocker") {
+    out.push({ angle: cyc.a % TWO_PI, kind: "coupler and rocker collinear (input reverses)" });
+    out.push({ angle: cyc.b % TWO_PI, kind: "coupler and rocker collinear (input reverses)" });
+  }
   return out.sort((x, y) => x.angle - y.angle);
+}
+
+// Largest jump and closure gap of a sampled closed path
+export function pathContinuity(points) {
+  let jump = 0;
+  for (let i = 1; i < points.length; i++) jump = Math.max(jump, Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]));
+  const a = points[0], b = points[points.length - 1];
+  return { jump, gap: Math.hypot(a[0] - b[0], a[1] - b[1]) };
 }
 
 // Jansen leg, lengths a to m, crank center at origin
@@ -236,5 +287,5 @@ export const LINK_PRESETS = {
   doubleRocker: { label: "Double rocker", mode: "fourBar", fourBar: { ground: 7, crank: 6, coupler: 2, rocker: 9, pDist: 3, pAngle: 60, branch: "open", speed: 1 } },
   changePoint: { label: "Change point", mode: "fourBar", fourBar: { ground: 4, crank: 3, coupler: 5, rocker: 4, pDist: 2.5, pAngle: 0, branch: "open", speed: 1 } },
   jansen: { label: "Jansen leg", mode: "jansen", jansen: { ...JANSEN_HOLY } },
-  chebyshev: { label: "Chebyshev straight line", mode: "fourBar", fourBar: { ground: 4, crank: 5, coupler: 2, rocker: 5, pDist: 1, pAngle: 0, branch: "crossed", speed: 1 } },
+  chebyshev: { label: "Chebyshev straight line", mode: "fourBar", fourBar: { ground: 4, crank: 5, coupler: 2, rocker: 5, pDist: 1, pAngle: 0, branch: "crossed", speed: 1, circuit: 0 } },
 };

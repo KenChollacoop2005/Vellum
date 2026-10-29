@@ -8,7 +8,7 @@ import { mbbProblem, runOptimizer, keMatrix } from "../sheets/03-topology/model.
 import { q4KE } from "../core/fem.js";
 import { runSchaferTurek, poiseuilleError, massDrift, runShedding } from "../sheets/04-wind-tunnel/model.js";
 import { makeRng } from "../core/rng.js";
-import { grashof, fourBarSweep, jansenSweep, jansenPositions, jansenNewton, JANSEN_HOLY, LINK_PRESETS } from "../sheets/07-linkage/model.js";
+import { grashof, fourBarSweep, jansenSweep, jansenPositions, jansenNewton, JANSEN_HOLY, LINK_PRESETS, cycleOf, positionAtPhase, pathContinuity } from "../sheets/07-linkage/model.js";
 
 const GPA = 1e9, KN = 1e3, MM = 1e-3;
 const REL = 1e-3; // frame tolerance, 0.1 percent
@@ -458,5 +458,47 @@ export const cases = [
   {
     id: "W4", sheet: "04", description: "Mass drift over 10,000 steps, closed periodic box", source: KRUGER,
     run: async () => [{ quantity: "relative mass drift", expected: 0, computed: massDrift(makeRng(2024), 10000, 32), unit: "", tol: 1e-6, kind: "max" }],
+  },
+  {
+    id: "K4", sheet: "07", description: "One full motion cycle is continuous and closed, all presets", source: NORTON,
+    run: async () => {
+      const rows = [];
+      for (const p of Object.values(LINK_PRESETS)) {
+        let path, longest;
+        if (p.mode === "jansen") {
+          path = jansenSweep(p.jansen, 1000).foot;
+          longest = Math.max(...Object.values(p.jansen));
+        } else {
+          path = fourBarSweep(p.fourBar, 1000).pts.map((q) => (q ? q.P : [NaN, NaN]));
+          longest = Math.max(p.fourBar.ground, p.fourBar.crank, p.fourBar.coupler, p.fourBar.rocker);
+        }
+        const { jump, gap } = pathContinuity(path);
+        rows.push({ quantity: `${p.label}, largest step / longest link`, expected: 0, computed: jump / longest, unit: "", tol: 0.02, kind: "max" });
+        rows.push({ quantity: `${p.label}, closure gap`, expected: 0, computed: gap, unit: "", tol: 1e-9, kind: "max" });
+      }
+      return rows;
+    },
+  },
+  {
+    id: "K5", sheet: "07", description: "Chebyshev straight line linkage, crossed, P at coupler midpoint", source: { label: "Closed form circle limits; flat line checked against a separate quadratic solution", url: `${REFS}#sheet-07-linkage` },
+    run: async () => {
+      const fb = LINK_PRESETS.chebyshev.fourBar;
+      const cyc = cycleOf(fb);
+      const halves = [[], []];
+      for (let i = 0; i <= 4000; i++) {
+        const ph = i / 4000;
+        halves[ph < 0.5 ? 0 : 1].push(positionAtPhase(fb, cyc, ph).P);
+      }
+      const flatErr = (pts) => Math.max(...pts.filter(([x]) => x >= 0 && x <= 3.9).map(([, y]) => Math.abs(y - 4)));
+      const [e0, e1] = halves.map(flatErr);
+      const flat = e0 < e1 ? 0 : 1;
+      const top = Math.max(...halves[1 - flat].map(([, y]) => y));
+      return [
+        { quantity: "input lower limit", expected: 0.6435, computed: cyc.a, unit: "rad", tol: 5e-5, kind: "abs" },
+        { quantity: "input upper limit", expected: 1.7722, computed: cyc.b, unit: "rad", tol: 5e-5, kind: "abs" },
+        { quantity: "flat half, max |y − 4| for x from 0 to 3.9", expected: 0, computed: Math.min(e0, e1), unit: "", tol: 0.01, kind: "max" },
+        { quantity: "other half, highest y", expected: 4.9, computed: top, unit: "", tol: 0.01, kind: "abs" },
+      ];
+    },
   },
 ];

@@ -5,7 +5,8 @@ import {
 } from "../../core/draw.js";
 import { fixed, fmt } from "../../core/units.js";
 import {
-  grashof, fourBarPosition, fourBarSweep, couplerVelocity, feasibleRanges, jansenPositions, jansenSweep, JANSEN_HOLY,
+  grashof, fourBarSweep, couplerVelocity, feasibleRanges, jansenPositions, jansenSweep, JANSEN_HOLY,
+  cyclePose, positionAtPhase, phaseForTheta,
   JANSEN_LINKS, LINK_PRESETS, CONTACT_BAND,
 } from "./model.js";
 
@@ -15,7 +16,7 @@ const PICK_PX = 12; // joint drag radius in pixels
 const BAR_PX = 7; // drawn bar width in pixels
 const JANSEN_KEYS = "abcdefghijklm".split("");
 
-const DEFAULT = { mode: "fourBar", fourBar: { ...LINK_PRESETS.crankRocker.fourBar }, jansen: { ...JANSEN_HOLY }, theta: 30, speed: 2, pair: false, mirror: false, trace: true };
+const DEFAULT = { mode: "fourBar", fourBar: { ...LINK_PRESETS.crankRocker.fourBar }, jansen: { ...JANSEN_HOLY }, theta: 30, phase: 30 / 360, speed: 2, pair: false, mirror: false, trace: true };
 
 const $ = (id) => document.getElementById(id);
 const canvas = document.querySelector("canvas.main");
@@ -23,7 +24,7 @@ const deadCanvas = $("dead");
 const view = createView();
 let colors = null;
 let state = loadState(DEFAULT, validState);
-let sweep = null, ranges = [[0, 2 * Math.PI]];
+let sweep = null, ranges = [[0, 2 * Math.PI]], cyc = null;
 let playing = !reducedMotion();
 let dir = 1;
 let raf = 0, last = 0;
@@ -35,7 +36,8 @@ function validState(s) {
   const f = Number.isFinite;
   const fb = s?.fourBar, j = s?.jansen;
   return s && ["fourBar", "jansen"].includes(s.mode) && fb && j && ["ground", "crank", "coupler", "rocker", "pDist", "pAngle"].every((k) => f(fb[k]))
-    && ["open", "crossed"].includes(fb.branch) && JANSEN_KEYS.every((k) => f(j[k])) && f(s.theta) && f(s.speed);
+    && ["open", "crossed"].includes(fb.branch) && (fb.circuit === undefined || Number.isInteger(fb.circuit))
+    && JANSEN_KEYS.every((k) => f(j[k])) && f(s.theta) && f(s.phase ?? 0) && f(s.speed);
 }
 
 function fourBarError(fb) {
@@ -55,13 +57,16 @@ function recompute() {
     geoError = fourBarError(state.fourBar);
     sweep = geoError ? null : fourBarSweep(state.fourBar, TRACE_STEPS);
     ranges = sweep ? sweep.ranges : [];
+    cyc = sweep ? sweep.cycle : null;
+    state.phase = (((state.phase ?? 0) % 1) + 1) % 1;
+    if (cyc) state.theta = ((cyclePose(state.fourBar, cyc, state.phase).theta / DEG) % 360 + 360) % 360;
   } else {
     geoError = jansenError(state.jansen);
     sweep = jansenSweep(state.jansen, TRACE_STEPS);
     ranges = feasibleJansen();
   }
   $("geo-err").textContent = geoError;
-  clampTheta();
+  if (state.mode === "jansen") clampTheta();
 }
 
 function feasibleJansen() {
@@ -96,8 +101,12 @@ function clampTheta() {
 }
 
 function current() {
-  const th = state.theta * DEG;
-  return state.mode === "fourBar" ? fourBarPosition(state.fourBar, th) : jansenPositions(state.jansen, th);
+  if (state.mode === "fourBar") return cyc ? positionAtPhase(state.fourBar, cyc, state.phase) : null;
+  return jansenPositions(state.jansen, state.theta * DEG);
+}
+
+function rockerMode() {
+  return state.mode === "fourBar" && cyc?.mode === "rocker";
 }
 
 // Find panel
@@ -106,14 +115,16 @@ function renderFind() {
   const pos = current();
   if (state.mode === "fourBar") {
     const g = grashof(state.fourBar);
-    const v = pos ? couplerVelocity(state.fourBar, state.theta * DEG, state.speed) : null;
+    const ps = cyc ? cyclePose(state.fourBar, cyc, state.phase) : null;
+    const sign = ps && rockerMode() && ps.half === 1 ? -1 : 1;
+    const v = pos ? couplerVelocity(state.fourBar, ps.theta, sign * state.speed, ps.side) : null;
     host.replaceChildren(
       box("ans-class", "Grashof class", g.grashof ? (g.type === "change point" ? "Special" : "Grashof") : "Non Grashof", "", g.cls),
       box("ans-type", "Motion type", g.type, "", `shortest link: ${g.shortest}`),
       box("ans-mu", "Transmission angle μ", pos ? fixed(pos.mu / DEG, 2) : "n/a", "°",
         sweep ? `min ${fixed(sweep.muMin / DEG, 2)}°, max ${fixed(sweep.muMax / DEG, 2)}° over the cycle` : ""),
       box("ans-p", "Coupler point P", pos ? `${fixed(pos.P[0], 3)}, ${fixed(pos.P[1], 3)}` : "n/a", "",
-        v ? `velocity ${fixed(v[0], 3)}, ${fixed(v[1], 3)} units/s (|v| = ${fixed(Math.hypot(...v), 3)})` : ""),
+        v ? `velocity ${fixed(v[0], 3)}, ${fixed(v[1], 3)} units/s (|v| = ${fixed(Math.hypot(...v), 3)}) at input speed ${fmt(state.speed, 3)} rad/s` : ""),
     );
     const rows = [["s + l", fixed(g.s + g.l, 3)], ["p + q", fixed(g.pq, 3)]];
     for (const t of sweep?.toggles || []) rows.push([`toggle at ${fixed(t.angle / DEG, 2)}°`, t.kind]);
@@ -137,7 +148,16 @@ function renderFind() {
     fillTable($("t-info"), ["Quantity", "Value"], rows);
   }
   const deadDeg = ranges.length ? 360 - ranges.reduce((s2, [x, y]) => s2 + (y - x), 0) / DEG : 360;
-  $("dead-note").textContent = deadDeg > 0.01 ? `Hatched: ${fixed(deadDeg, 1)}° of crank angle can't be assembled.` : "The crank turns all the way around.";
+  if (rockerMode()) {
+    $("dead-note").textContent = `The input swings between ${fixed(cyc.a / DEG, 2)}° and ${fixed((cyc.b / DEG) % 360, 2)}° on circuit ${cyc.circuit + 1} of ${cyc.circuits}. The slider runs one full swing: out on one branch, back on the other.`;
+  } else if (state.mode === "fourBar") {
+    $("dead-note").textContent = "The crank turns all the way around.";
+  } else {
+    $("dead-note").textContent = deadDeg > 0.01 ? `Hatched: ${fixed(deadDeg, 1)}° of crank angle can't be assembled.` : "The crank turns all the way around.";
+  }
+  const sw = $("switch-circuit");
+  sw.disabled = !(state.mode === "fourBar" && cyc && cyc.circuits > 1);
+  sw.textContent = rockerMode() ? "Switch circuit" : "Switch circuit (open or crossed)";
   $("status-note").textContent = state.mode === "fourBar"
     ? "Units are arbitrary, use any consistent length. Velocity by central finite difference."
     : "Lengths in Jansen's units (cm in his drawings). Foot velocity by central finite difference.";
@@ -227,14 +247,7 @@ function drawFourBar(ctx, S) {
     text(ctx, geoError, 16, 30, { color: colors.redPencil, size: 13 });
     return;
   }
-  if (state.trace) {
-    let seg = [];
-    for (const p of sweep.pts) {
-      if (p) seg.push(S(p.P));
-      else { polyline(ctx, seg, colors.graphite, 1); seg = []; }
-    }
-    polyline(ctx, seg, colors.graphite, 1);
-  }
+  if (state.trace) polyline(ctx, sweep.pts.filter(Boolean).map((p) => S(p.P)), colors.graphite, 1, null, true);
   const pos = current();
   if (!pos) return;
   const O2 = S(pos.O2), O4 = S(pos.O4), A = S(pos.A), B = S(pos.B), P = S(pos.P);
@@ -269,7 +282,8 @@ function drawFourBar(ctx, S) {
   ctx.stroke();
   ctx.restore();
   text(ctx, `μ ${fixed(pos.mu / DEG, 1)}°`, B[0] + 14, B[1] + 22, { size: 10.5, color: colors.graphite, bg: colors.vellum });
-  text(ctx, `θ2 = ${fixed(state.theta, 1)}°`, 10, canvas.getBoundingClientRect().height - 10, { size: 11, color: colors.graphite, bg: colors.vellum });
+  const label = rockerMode() ? `θ2 = ${fixed(state.theta, 1)}°, swing ${fixed(state.phase * 100, 1)}% (${state.phase < 0.5 ? "out" : "back"})` : `θ2 = ${fixed(state.theta, 1)}°`;
+  text(ctx, label, 10, canvas.getBoundingClientRect().height - 10, { size: 11, color: colors.graphite, bg: colors.vellum });
 }
 
 function mirrorPos(p) {
@@ -330,6 +344,11 @@ function drawJansen(ctx, S) {
 function drawDeadZones() {
   const { ctx, w, h } = fitCanvas(deadCanvas);
   ctx.clearRect(0, 0, w, h);
+  if (state.mode === "fourBar") {
+    if (rockerMode()) line(ctx, w / 2, 0, w / 2, h, colors.graphite, 1);
+    line(ctx, 0, 0.5, w, 0.5, colors.hairline, 1);
+    return;
+  }
   const X = (rad) => (rad / (2 * Math.PI)) * w;
   ctx.save();
   ctx.strokeStyle = colors.redPencil;
@@ -366,6 +385,16 @@ function loop() {
 }
 
 function step(dt) {
+  if (state.mode === "fourBar") {
+    if (!cyc) return;
+    const period = rockerMode() ? (2 * (cyc.b - cyc.a)) / Math.max(state.speed, 1e-9) : (2 * Math.PI) / Math.max(state.speed, 1e-9);
+    state.phase = (state.phase + dt / period) % 1;
+    state.theta = ((cyclePose(state.fourBar, cyc, state.phase).theta / DEG) % 360 + 360) % 360;
+    syncTheta();
+    renderFind();
+    draw();
+    return;
+  }
   const next = state.theta + dir * state.speed * dt / DEG;
   if (inRanges(next * DEG)) {
     state.theta = ((next % 360) + 360) % 360;
@@ -385,8 +414,29 @@ function step(dt) {
 }
 
 function syncTheta() {
-  $("theta").value = fixed(state.theta, 2);
-  $("theta-range").value = state.theta;
+  const rocker = rockerMode();
+  const label = document.querySelector('label[for="theta"]');
+  label.textContent = rocker ? "Swing cycle" : "Crank angle";
+  $("theta").nextElementSibling.textContent = rocker ? "%" : "deg";
+  const range = $("theta-range");
+  range.max = rocker ? "100" : "360";
+  range.step = rocker ? "0.1" : "0.25";
+  range.setAttribute("aria-label", rocker ? "Swing cycle in percent" : "Crank angle in degrees");
+  if (state.mode === "fourBar" && !rocker) {
+    $("theta").value = fixed(state.phase * 360, 2);
+    range.value = state.phase * 360;
+  } else if (rocker) {
+    $("theta").value = fixed(state.phase * 100, 2);
+    range.value = state.phase * 100;
+  } else {
+    $("theta").value = fixed(state.theta, 2);
+    range.value = state.theta;
+  }
+}
+
+function setInput(v) {
+  if (state.mode === "jansen") { state.theta = ((v % 360) + 360) % 360; clampTheta(); return; }
+  state.phase = rockerMode() ? (((v / 100) % 1) + 1) % 1 : (((v / 360) % 1) + 1) % 1;
 }
 
 // Joint dragging, four bar only
@@ -409,11 +459,13 @@ attachPanZoom(canvas, view, {
   onMove(e, p, m) {
     if (!drag) return;
     const fb = state.fourBar;
-    const pos = current() || fourBarPosition(fb, state.theta * DEG);
+    const pos = current();
     const round = (v) => Math.max(0.05, Math.round(v * 100) / 100);
     if (drag === "A") {
+      const half = cyc ? cyclePose(fb, cyc, state.phase).half : 0;
       fb.crank = round(Math.hypot(m[0], m[1]));
-      state.theta = ((Math.atan2(m[1], m[0]) / DEG) + 360) % 360;
+      recompute();
+      if (cyc) state.phase = phaseForTheta(cyc, Math.atan2(m[1], m[0]), half);
     } else if (drag === "O4") {
       fb.ground = round(Math.max(0.05, m[0]));
     } else if (drag === "B" && pos) {
@@ -465,6 +517,7 @@ function init() {
       if (p.fourBar) state.fourBar = { ...p.fourBar };
       if (p.jansen) state.jansen = { ...p.jansen };
       state.theta = 30;
+      state.phase = 30 / 360;
       userView = false;
       dir = 1;
       syncInputs();
@@ -485,8 +538,15 @@ function init() {
   num("pangle", (v) => { state.fourBar.pAngle = v; });
   for (const k of JANSEN_KEYS) num(`j-${k}`, (v) => { state.jansen[k] = v; });
   num("speed", (v) => { state.speed = Math.max(0, v); });
-  num("theta", (v) => { state.theta = ((v % 360) + 360) % 360; });
-  $("theta-range").addEventListener("input", () => { state.theta = Number($("theta-range").value); clampTheta(); syncTheta(); renderFind(); draw(); saveState(state); });
+  num("theta", setInput);
+  $("theta-range").addEventListener("input", () => { setInput(Number($("theta-range").value)); recompute(); syncTheta(); renderFind(); draw(); saveState(state); });
+  $("switch-circuit").addEventListener("click", () => {
+    const fb = state.fourBar;
+    if (rockerMode()) fb.circuit = (cyc.circuit + 1) % cyc.circuits;
+    else fb.branch = fb.branch === "crossed" ? "open" : "crossed";
+    syncInputs();
+    update();
+  });
   $("branch").addEventListener("change", () => { state.fourBar.branch = $("branch").value; update(); });
   $("mode").addEventListener("change", () => { state.mode = $("mode").value; userView = false; syncInputs(); update(); });
   $("pair").addEventListener("change", () => { state.pair = $("pair").checked; update(false); });
@@ -502,13 +562,19 @@ function init() {
   $("png").addEventListener("click", () => downloadCanvas(canvas, "vellum-linkage.png"));
   $("csv").addEventListener("click", () => {
     const rows = [];
-    for (let i = 0; i <= 360; i++) {
-      const p = state.mode === "fourBar" ? fourBarPosition(state.fourBar, i * DEG) : jansenPositions(state.jansen, i * DEG);
-      if (!p) { rows.push([i, "", ""]); continue; }
-      const q = state.mode === "fourBar" ? p.P : p.G;
-      rows.push([i, q[0], q[1]]);
+    if (state.mode === "fourBar" && cyc) {
+      for (let i = 0; i <= 360; i++) {
+        const p = positionAtPhase(state.fourBar, cyc, i / 360);
+        rows.push([(i / 3.6).toFixed(3), p ? p.theta / DEG : "", p ? p.P[0] : "", p ? p.P[1] : ""]);
+      }
+      download("vellum-linkage.csv", toCsv(["cycle %", "input deg", "P x", "P y"], rows), "text/csv");
+      return;
     }
-    download("vellum-linkage.csv", toCsv(["crank deg", state.mode === "fourBar" ? "P x" : "G x", state.mode === "fourBar" ? "P y" : "G y"], rows), "text/csv");
+    for (let i = 0; i <= 360; i++) {
+      const p = jansenPositions(state.jansen, i * DEG);
+      rows.push(p ? [i, p.G[0], p.G[1]] : [i, "", ""]);
+    }
+    download("vellum-linkage.csv", toCsv(["crank deg", "G x", "G y"], rows), "text/csv");
   });
   new ResizeObserver(() => { if (!userView) fit(); draw(); }).observe(canvas);
 }
