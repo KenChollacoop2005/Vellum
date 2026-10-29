@@ -9,6 +9,9 @@ const SIZE_FACTOR = { plate: 2, naca: 3 }; // shape length in grid cells per siz
 const TARGET_MS = 24; // compute time per batch
 const TAU_COMFORT = 1.5; // largest tau before the inlet speed is lowered
 const SPEEDS = { accurate: 0.05, fast: 0.1 }; // peak lattice inlet speed
+const WARMUP_FLOWS = 2; // flow-through times before averaging
+const KICK = 0.3; // startup transverse kick, fraction of U
+const KICK_RE = 40; // kick only where shedding is expected
 const PARTICLES = 500; // tracer count
 const COLORS = { vellum: [244, 241, 232], graphite: [59, 62, 66], red: [178, 58, 46], blue: [44, 91, 134], ink: [18, 19, 20] };
 
@@ -57,7 +60,14 @@ function setup(c) {
     postMessage({ type: "error", message: `That Reynolds number is too high for this grid (τ = ${tau.toFixed(3)}, it must stay above ${TAU_MIN}). Use a finer grid or a lower Reynolds number.`, info });
     return;
   }
-  sim = createLbm({ nx, ny, tau, uIn: uPeak, profile: parabolic ? "parabolic" : "uniform", yMode: parabolic ? "walls" : "periodic", solid: mask, outline });
+  const kx = cx + 1.5 * L, ky = cy;
+  const H = ny - 2;
+  const baseU = (j) => (parabolic ? Math.max(0, (4 * uPeak * (j - 0.5) * (H - (j - 0.5))) / (H * H)) : uPeak);
+  const init = c.re >= KICK_RE
+    ? (i, j) => [1, baseU(j), KICK * u * Math.exp(-((i - kx) ** 2 + (j - ky) ** 2) / (L * L))]
+    : null;
+  sim = createLbm({ nx, ny, tau, uIn: uPeak, profile: parabolic ? "parabolic" : "uniform", yMode: parabolic ? "walls" : "periodic", solid: mask, outline, init });
+  info.warmup = Math.round((WARMUP_FLOWS * nx) / u);
   seedParticles();
   postMessage({ type: "setup", info, mask: Uint8Array.from(sim.mask) });
   frame();
@@ -119,13 +129,14 @@ function frame() {
 
 function stats(coef) {
   const win = cfg.window;
-  const recent = forces.filter(([s]) => s > sim.step - win);
+  const warm = sim.step >= info.warmup;
+  const recent = warm ? forces.filter(([s]) => s > Math.max(sim.step - win, info.warmup)) : [];
   const n = recent.length || 1;
   const cdAvg = recent.reduce((acc, r) => acc + r[1], 0) / n * coef;
   const clAvg = recent.reduce((acc, r) => acc + r[2], 0) / n * coef;
-  const lift = forces.filter(([s]) => s > sim.step - Math.max(win, 20000)).map((r) => r[2]);
+  const lift = warm ? forces.filter(([s]) => s > Math.max(sim.step - Math.max(win, 20000), info.warmup)).map((r) => r[2]) : [];
   const st = strouhal(lift, LIFT_EVERY, info.D, info.u);
-  return { cdAvg, clAvg, samples: recent.length, St: st.periodic ? st.St : null, periodic: st.periodic, liftAmp: (st.amp || 0) * coef };
+  return { warm, warmup: info.warmup, cdAvg, clAvg, samples: recent.length, St: st.periodic ? st.St : null, periodic: st.periodic, liftAmp: (st.amp || 0) * coef };
 }
 
 function runBatch() {

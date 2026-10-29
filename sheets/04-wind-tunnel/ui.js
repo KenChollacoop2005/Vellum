@@ -97,10 +97,17 @@ function renderButtons() {
 function renderFind() {
   if (!frame || !info) return;
   const s = frame.stats;
-  setAnswer("ans-cd", fixed(s.cdAvg, 3), "", `live ${fixed(frame.cd, 3)}, over ${s.samples * 10} steps`);
-  setAnswer("ans-cl", fixed(s.clAvg, 3), "", `live ${fixed(frame.cl, 3)}`);
-  if (s.periodic) setAnswer("ans-st", fixed(s.St, 3), "", "from lift zero crossings");
-  else setAnswer("ans-st", "n/a", "", s.liftAmp < 1e-3 ? "flow looks steady, no shedding" : "waiting for a repeating period");
+  if (!s.warm) {
+    const msg = `averaging starts at step ${s.warmup} (2 flow-through times), now ${frame.step}`;
+    setAnswer("ans-cd", "warming up", "", `live ${fixed(frame.cd, 3)}, ${msg}`);
+    setAnswer("ans-cl", "warming up", "", `live ${fixed(frame.cl, 3)}`);
+    setAnswer("ans-st", "warming up", "", "measured after the startup transient");
+  } else {
+    setAnswer("ans-cd", fixed(s.cdAvg, 3), "", `live ${fixed(frame.cd, 3)}, over ${s.samples * 10} steps after warm-up`);
+    setAnswer("ans-cl", fixed(s.clAvg, 3), "", `live ${fixed(frame.cl, 3)}`);
+    if (s.periodic) setAnswer("ans-st", fixed(s.St, 3), "", "from lift zero crossings");
+    else setAnswer("ans-st", "n/a", "", s.liftAmp < 1e-3 ? "flow looks steady, no shedding" : "waiting for a repeating period");
+  }
   const blockage = state.mode === "tunnel" ? info.D / (info.ny - 2) : info.D / info.ny;
   fillTable($("t-info"), ["Quantity", "Value"], [
     ["lattice", `${info.nx} × ${info.ny}`],
