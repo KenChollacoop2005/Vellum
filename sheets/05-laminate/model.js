@@ -5,10 +5,10 @@ const ZERO_TERM = 1e-9; // relative size treated as zero for warnings
 
 // Material library, moduli and strengths in MPa, ply thickness in mm
 export const MATERIALS = {
-  t300: { name: "T300/5208 carbon epoxy", E1: 181000, E2: 10300, G12: 7170, nu12: 0.28, Xt: 1500, Xc: 1500, Yt: 40, Yc: 246, S: 68, t: 0.125, source: "Kaw, Table 2.1 (Tsai and Hahn data)" },
-  as4: { name: "AS4/3501-6 carbon epoxy (typical values)", E1: 147000, E2: 10300, G12: 7000, nu12: 0.27, Xt: 2280, Xc: 1725, Yt: 57, Yc: 228, S: 76, t: 0.125, source: "typical values after Daniel and Ishai, Appendix A; ply thickness assumed" },
-  eglass: { name: "E-glass epoxy (typical values)", E1: 41000, E2: 10400, G12: 4300, nu12: 0.28, Xt: 1140, Xc: 620, Yt: 39, Yc: 128, S: 89, t: 0.125, source: "typical values after Daniel and Ishai, Appendix A; ply thickness assumed" },
-  kevlar: { name: "Kevlar 49 epoxy (typical values)", E1: 80000, E2: 5500, G12: 2200, nu12: 0.34, Xt: 1400, Xc: 335, Yt: 30, Yc: 158, S: 49, t: 0.125, source: "typical values after Daniel and Ishai, Appendix A; ply thickness assumed" },
+  t300: { name: "T300/5208", short: "T300", E1: 181000, E2: 10300, G12: 7170, nu12: 0.28, Xt: 1500, Xc: 1500, Yt: 40, Yc: 246, S: 68, t: 0.125, source: "Kaw, Table 2.1 (Tsai and Hahn data)" },
+  as4: { name: "AS4/3501-6 (typical)", short: "AS4 (typ.)", E1: 147000, E2: 10300, G12: 7000, nu12: 0.27, Xt: 2280, Xc: 1725, Yt: 57, Yc: 228, S: 76, t: 0.125, source: "typical values after Daniel and Ishai, Appendix A; ply thickness assumed" },
+  eglass: { name: "E-glass epoxy (typical)", short: "E-glass (typ.)", E1: 41000, E2: 10400, G12: 4300, nu12: 0.28, Xt: 1140, Xc: 620, Yt: 39, Yc: 128, S: 89, t: 0.125, source: "typical values after Daniel and Ishai, Appendix A; ply thickness assumed" },
+  kevlar: { name: "Kevlar 49 epoxy (typical)", short: "Kevlar (typ.)", E1: 80000, E2: 5500, G12: 2200, nu12: 0.34, Xt: 1400, Xc: 335, Yt: 30, Yc: 158, S: 49, t: 0.125, source: "typical values after Daniel and Ishai, Appendix A; ply thickness assumed" },
 };
 
 export function reducedQ(m) {

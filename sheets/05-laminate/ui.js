@@ -259,8 +259,8 @@ function drawThrough(ctx, b, kind) {
 }
 
 // Ply list
-function matOptions(sel) {
-  return Object.entries(state.lib).map(([k, m]) => el("option", { value: k, text: m.name, selected: k === sel }));
+function matOptions(sel, short = false) {
+  return Object.entries(state.lib).map(([k, m]) => el("option", { value: k, text: short ? (m.short || MATERIALS[k]?.short || m.name) : m.name, title: m.name, selected: k === sel }));
 }
 
 function renderPlies() {
@@ -275,7 +275,7 @@ function renderPlies() {
       state.plies[i].angle = v;
       update();
     });
-    const mat = el("select", { "aria-label": `Ply ${i + 1} material` }, matOptions(p.mat));
+    const mat = el("select", { "aria-label": `Ply ${i + 1} material`, title: state.lib[p.mat]?.name || "" }, matOptions(p.mat, true));
     mat.addEventListener("change", () => { state.plies[i].mat = mat.value; update(); });
     const up = el("button", { type: "button", text: "Up", "aria-label": `Move ply ${i + 1} up`, disabled: i === state.plies.length - 1 });
     up.addEventListener("click", () => movePly(i, i + 1));
