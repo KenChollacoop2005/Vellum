@@ -20,13 +20,20 @@
 /* Tool sheet grid */
 .tool {
   display: grid;
-  grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr) minmax(16rem, 20rem);
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
   grid-template-areas:
-    "head head head"
-    "given solution solution"
-    "find solution solution"
-    "method method tblock";
-  grid-template-rows: auto auto 1fr auto;
+    "head head"
+    "work work"
+    "method tblock";
+}
+.work {
+  grid-area: work;
+  display: grid;
+  grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
+  grid-template-areas:
+    "given solution"
+    "find solution";
+  grid-template-rows: auto 1fr;
 }
 .sheet-head { grid-area: head; }
 .given { grid-area: given; }
@@ -59,8 +66,8 @@
 .panel > h2 { border-bottom: 1px solid var(--hairline); padding-bottom: 0.2rem; margin-bottom: 0.5rem; }
 .given { border-right: 1px solid var(--graphite); border-bottom: 1px solid var(--hairline); }
 .find { border-right: 1px solid var(--graphite); }
-.solution { display: flex; flex-direction: column; align-self: start; position: sticky; top: 0; }
-.solution .stage { position: relative; height: clamp(24rem, calc(100vh - 9rem), 46rem); }
+.solution { display: flex; flex-direction: column; align-self: start; position: sticky; top: 0; max-height: 100vh; overflow-y: auto; }
+.solution .stage { position: relative; flex: none; height: clamp(20rem, calc(100vh - 12rem), 46rem); }
 .solution .stage.flow { height: auto; aspect-ratio: 2.2; }
 .solution canvas.main { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
 .solution .bar { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; margin-bottom: 0.4rem; }
@@ -116,15 +123,12 @@
 @media (max-width: 900px) {
   .sheet { margin: 0; border-left: 0; border-right: 0; padding: 0.8rem; }
   .sheet::before { inset: 0.3rem; }
-  .tool {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "head" "solution" "given" "find" "method" "tblock";
-    grid-template-rows: none;
-  }
+  .tool { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "work" "method" "tblock"; }
+  .work { grid-template-columns: minmax(0, 1fr); grid-template-areas: "solution" "given" "find"; grid-template-rows: none; }
   .given, .find, .method { border-right: 0; }
   .given { border-top: 1px solid var(--graphite); }
   .find { border-top: 1px solid var(--hairline); }
-  .solution { position: static; padding-left: 0.3rem; padding-right: 0.3rem; }
+  .solution { position: static; max-height: none; overflow: visible; padding-left: 0.3rem; padding-right: 0.3rem; }
   .solution .stage { height: 24rem; }
   .solution .stage.tall { height: 46rem; }
   .solution .stage.flow { height: auto; aspect-ratio: 1.7; }
