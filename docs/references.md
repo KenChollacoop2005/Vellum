@@ -63,4 +63,4 @@ Sources used for each method, with one line on what each was used for.
 ## Fonts
 
 - Routed Gothic by Darren Embry, SIL Open Font License 1.1. https://github.com/dse/routed-gothic . Taken from the Debian/Ubuntu package fonts-routed-gothic and converted to woff2.
-- B612 and B612 Mono by the B612 Project (Airbus, Intactile Design), SIL Open Font License 1.1. https://github.com/polarsys/b612 . Taken from the Ubuntu package fonts-b612 and converted to woff2.
+- B612 by the B612 Project (Airbus, Intactile Design), SIL Open Font License 1.1. https://github.com/polarsys/b612 . Taken from the Ubuntu package fonts-b612 and converted to woff2.

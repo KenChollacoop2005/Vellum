@@ -108,14 +108,18 @@
     <div class="notes">
       <p>This is the direct stiffness method. Each member gets a small stiffness matrix in its own axes, gets rotated into global x and y, and gets added into one big matrix K for the whole structure. Then I solve K u = F for the node displacements u and work back to member forces.</p>
       <p>A frame member has three degrees of freedom at each end (u, v and rotation θ) and uses Euler Bernoulli beam theory. A truss member only carries axial force, so it only has the EA/L terms.</p>
-      <div class="eq">frame, local axes:
-  axial      EA/L  [ 1  -1 ]
-  bending    EI/L³ [ 12   6L  -12   6L
-                      6L  4L²  -6L  2L²
-                     -12  -6L   12  -6L
-                      6L  2L²  -6L  4L² ]
-global:      k = Tᵀ k_local T
-member ends: f = k_local T u − f_load</div>
+      <div class="eq">axial, local axes:     k = (EA/L) [ 1  −1 ; −1  1 ]
+bending, local axes:   k = (EI/L³) ×</div>
+      <table class="mat" aria-label="Frame bending stiffness matrix">
+        <tbody>
+          <tr><td>12</td><td>6L</td><td>−12</td><td>6L</td></tr>
+          <tr><td>6L</td><td>4L²</td><td>−6L</td><td>2L²</td></tr>
+          <tr><td>−12</td><td>−6L</td><td>12</td><td>−6L</td></tr>
+          <tr><td>6L</td><td>2L²</td><td>−6L</td><td>4L²</td></tr>
+        </tbody>
+      </table>
+      <div class="eq">global:        k = Tᵀ k_local T
+member ends:   f = k_local T u − f_load</div>
       <p>A uniform load w on a frame member turns into the consistent nodal loads wL/2 and wL²/12 at each end. On a truss member it is lumped as wL/2 to each node, since a truss member can't carry bending. A "global y" load acts per meter of member length. A "perpendicular" load acts normal to the member.</p>
       <p>The structure matrix is banded, so nodes are renumbered with reverse Cuthill McKee to keep the band narrow and then solved with a banded Cholesky factorization. If a pivot goes to zero or negative, the structure is a mechanism and the sheet says so instead of printing nonsense. Rotations at nodes with only truss members are held, since nothing there resists them.</p>
       <p>Signs: axial force is positive in tension. Moment is positive when it sags the member (tension on the member's local −y side). The deflected shape uses the exact cubic shape within each member, plus the extra sag from a uniform load.</p>

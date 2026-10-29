@@ -96,7 +96,7 @@ media/                screenshots and thumbnails
 ## Credits
 
 - Routed Gothic by Darren Embry, SIL Open Font License 1.1 (`fonts/RoutedGothic-OFL.txt`).
-- B612 and B612 Mono by the B612 Project (Airbus, Intactile Design), SIL Open Font License 1.1 (`fonts/B612-OFL.txt`).
+- B612 by the B612 Project (Airbus, Intactile Design), SIL Open Font License 1.1 (`fonts/B612-OFL.txt`).
 - Methods and benchmark data: see [docs/references.md](docs/references.md). The topology optimizer follows Andreassen et al. (2011); the flow benchmark is Schäfer and Turek (1996).
 
 ## License

@@ -91,8 +91,12 @@
 .method .notes { max-width: 52rem; margin-top: 0.6rem; }
 .method .notes p, .method .notes li { font-size: var(--fs-1); }
 .method .notes ul { margin: 0.4rem 0; }
+table.mat { border-collapse: collapse; margin: -0.5rem 0 0.5rem; background: var(--vellum-deep); border-left: 2px solid var(--graphite); padding: 0.2rem 0.6rem; font-size: var(--fs-1); color: var(--ink); }
+table.mat td { padding: 0.1rem 0.55rem; text-align: right; }
+table.mat td:first-child { border-left: 1px solid var(--ink); }
+table.mat td:last-child { border-right: 1px solid var(--ink); }
 .eq {
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: var(--fs-1);
   color: var(--ink);
   background: var(--vellum-deep);

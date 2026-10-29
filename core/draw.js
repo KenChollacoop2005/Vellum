@@ -3,7 +3,6 @@ const TOKEN_NAMES = ["table", "vellum", "vellum-deep", "grid", "graphite", "grap
   "hairline", "red-pencil", "draft-blue", "check-green"];
 
 export const FONT_UI = '"B612", ui-monospace, monospace';
-export const FONT_MONO = '"B612 Mono", ui-monospace, monospace';
 export const FONT_LETTER = '"Routed Gothic", "B612", ui-monospace, monospace';
 
 export function readColors(el = document.documentElement) {

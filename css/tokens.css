@@ -15,7 +15,6 @@
   /* Type */
   --font-letter: "Routed Gothic", "B612", ui-monospace, monospace;
   --font-ui: "B612", ui-monospace, monospace;
-  --font-mono: "B612 Mono", ui-monospace, monospace;
   --fs-0: 0.75rem;
   --fs-1: 0.875rem;
   --fs-2: 1rem;
@@ -43,18 +42,6 @@
 @font-face {
   font-family: "B612";
   src: url("../fonts/b612-bold.woff2") format("woff2");
-  font-weight: 700;
-  font-display: swap;
-}
-@font-face {
-  font-family: "B612 Mono";
-  src: url("../fonts/b612-mono-regular.woff2") format("woff2");
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: "B612 Mono";
-  src: url("../fonts/b612-mono-bold.woff2") format("woff2");
   font-weight: 700;
   font-display: swap;
 }

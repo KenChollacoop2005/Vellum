@@ -28,7 +28,6 @@ a:hover { color: var(--ink); }
   font-weight: 400;
 }
 
-.mono { font-family: var(--font-mono); }
 .sym { text-transform: none; letter-spacing: 0.02em; font-family: var(--font-ui); }
 .soft { color: var(--graphite); }
 .warn { color: var(--red-pencil); }
@@ -165,7 +164,7 @@ table.data td.text { font-family: var(--font-ui); text-align: left; white-space:
   background: var(--vellum);
   border: 1px solid var(--graphite);
   padding: 0.2rem 0.4rem;
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: var(--fs-0);
   color: var(--ink);
   white-space: pre;
