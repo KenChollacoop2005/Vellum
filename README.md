@@ -45,7 +45,7 @@ Every sheet has a list of benchmark cases in `verify/cases.js`: textbook answers
 
 **Vibrations.** Generalized eigenproblem K φ = ω² M φ with mass normalized modes, an exact complex frequency response, Newmark time stepping for free response, and Web Audio tones shifted by one factor so the intervals between modes stay exact.
 
-**Linkage simulator.** Joints found by two circle intersections on a fixed branch, with Grashof class, transmission angle, toggle positions and dead zones. The Jansen leg uses the holy numbers and is cross checked with a Newton solve of all bar equations.
+**Linkage simulator.** Joints found by two circle intersections. A crank keeps one assembly for the whole turn; a rocker input swings between the limits of its circuit and switches assembly at each limit, so the whole closed coupler curve is traced in one continuous motion. Grashof class, transmission angle and toggle positions are reported. The Jansen leg uses the holy numbers and is cross checked with a Newton solve of all bar equations.
 
 </details>
 
