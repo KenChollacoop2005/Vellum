@@ -139,15 +139,16 @@ function stats(coef) {
   return { warm, warmup: info.warmup, cdAvg, clAvg, samples: recent.length, St: st.periodic ? st.St : null, periodic: st.periodic, liftAmp: (st.amp || 0) * coef };
 }
 
-function runBatch() {
+function runBatch(fixedSteps) {
   const t0 = performance.now();
-  for (let k = 0; k < batch; k += LIFT_EVERY) {
+  const n = fixedSteps || batch;
+  for (let k = 0; k < n; k += LIFT_EVERY) {
     stepLbm(sim, LIFT_EVERY);
     forces.push([sim.step, sim.fx, sim.fy]);
   }
   if (forces.length > 20000) forces = forces.slice(-10000);
   const dt = performance.now() - t0;
-  batch = Math.max(LIFT_EVERY, Math.min(200, Math.round((batch * TARGET_MS) / Math.max(1, dt) / LIFT_EVERY) * LIFT_EVERY));
+  if (!fixedSteps) batch = Math.max(LIFT_EVERY, Math.min(200, Math.round((batch * TARGET_MS) / Math.max(1, dt) / LIFT_EVERY) * LIFT_EVERY));
   const { ux, uy, rho } = macros(sim);
   for (let c = 0; c < sim.n; c++) {
     if (!(rho[c] > 0.5 && rho[c] < 2)) {
@@ -156,7 +157,7 @@ function runBatch() {
       return false;
     }
   }
-  advect(ux, uy, batch);
+  advect(ux, uy, n);
   return true;
 }
 
@@ -197,7 +198,7 @@ onmessage = (e) => {
   if (m.cmd === "setup") { token++; running = false; setup(m.cfg); }
   else if (m.cmd === "run" && sim) { if (!running) { running = true; loop(++token); } }
   else if (m.cmd === "pause") { running = false; token++; }
-  else if (m.cmd === "step" && sim && !running) { if (runBatch()) frame(); }
+  else if (m.cmd === "step" && sim && !running) { if (runBatch(Math.round(m.steps / LIFT_EVERY) * LIFT_EVERY)) frame(); }
   else if (m.cmd === "view" && sim) { cfg.view = m.view; cfg.window = m.window ?? cfg.window; frame(); }
   else if (m.cmd === "paint") paint(m.cells, m.value);
 };
