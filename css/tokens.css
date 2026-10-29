@@ -13,7 +13,7 @@
   --check-green: #3E6B48;
 
   /* Type */
-  --font-letter: "Routed Gothic", "B612", ui-monospace, monospace;
+  --font-letter: "Vellum Digits", "Routed Gothic", "B612", ui-monospace, monospace;
   --font-ui: "B612", ui-monospace, monospace;
   --fs-0: 0.75rem;
   --fs-1: 0.875rem;
@@ -27,6 +27,14 @@
   --t-ui: 150ms;
 }
 
+/* Digits only, so 1 never reads as I */
+@font-face {
+  font-family: "Vellum Digits";
+  src: url("../fonts/b612-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+  unicode-range: U+0030-0039;
+}
 @font-face {
   font-family: "Routed Gothic";
   src: url("../fonts/routed-gothic.woff2") format("woff2");
