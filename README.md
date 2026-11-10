@@ -113,6 +113,7 @@ media/                screenshots and thumbnails
 
 - Routed Gothic by Darren Embry and B612 by the B612 Project (Airbus, Intactile Design), both under the SIL Open Font License 1.1.
 - Methods and benchmark data are listed in [docs/references.md](docs/references.md).
+- Site icon: 📜 from [Twemoji](https://github.com/jdecked/twemoji), CC-BY 4.0.
 
 ## License
 
